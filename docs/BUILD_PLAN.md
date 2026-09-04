@@ -153,25 +153,25 @@ import under `domain/`.
 
 ## M8 — Database Migration (v1 to v2) & Active/Paused Toggle
 
-- [ ] `core/database/app_database.dart`: Bump `schemaVersion` to 2.
-- [ ] Implement `onUpgrade`: `ALTER TABLE subscriptions ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`, `ADD COLUMN currency_code TEXT NOT NULL DEFAULT 'USD'`.
-- [ ] Implement `onUpgrade`: `CREATE TABLE settings` and `CREATE TABLE exchange_rates`.
-- [ ] Update `Subscription` entity and `SubscriptionModel` to include `isActive` and `currencyCode`.
-- [ ] Update `CalculateBurnRate` usecase to ignore subscriptions where `isActive == false`.
-- [ ] Add Active/Paused switch to `AddEditSubscriptionSheet`.
-- [ ] Dim paused subscriptions in `SubscriptionTile`.
-- [ ] **Tests:** Verify burn rate ignores paused; DB migration tests if possible; Widget test for the toggle.
+- [x] `core/database/app_database.dart`: Bump `schemaVersion` to 2.
+- [x] Implement `onUpgrade`: `ALTER TABLE subscriptions ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`, `ADD COLUMN currency_code TEXT NOT NULL DEFAULT 'USD'`.
+- [x] Implement `onUpgrade`: `CREATE TABLE settings` and `CREATE TABLE exchange_rates`.
+- [x] Update `Subscription` entity and `SubscriptionModel` to include `isActive` and `currencyCode`.
+- [x] Update `CalculateBurnRate` usecase to ignore subscriptions where `isActive == false`.
+- [x] Add Active/Paused switch to `AddEditSubscriptionSheet`.
+- [x] Dim paused subscriptions in `SubscriptionTile`.
+- [x] **Tests:** Verify burn rate ignores paused; DB migration tests if possible; Widget test for the toggle.
 
 ---
 
 ## M9 — Multi-Currency & Settings Layer
 
-- [ ] Create `features/settings` folder structure.
-- [ ] Implement `SettingsLocalDataSource` (raw sqflite for settings/exchange_rates).
-- [ ] Implement `SettingsNotifier` and `ExchangeRateNotifier`.
-- [ ] Update `CalculateBurnRate` to accept `Map<String, double> exchangeRates` and `String baseCurrency`, and apply multiplication.
-- [ ] Build `SettingsScreen` UI: Base currency picker, and list of text fields to define exchange rates.
-- [ ] **Tests:** Unit test `CalculateBurnRate` with varied exchange rates; verify fallback to 1.0 when missing.
+- [x] Create `features/settings` folder structure.
+- [x] Implement `SettingsLocalDataSource` (raw sqflite for settings/exchange_rates).
+- [x] Implement `SettingsNotifier` and `ExchangeRateNotifier`.
+- [x] Update `CalculateBurnRate` to accept `Map<String, double> exchangeRates` and `String baseCurrency`, and apply multiplication.
+- [x] Build `SettingsScreen` UI: Base currency picker, and list of text fields to define exchange rates.
+- [x] **Tests:** Unit test `CalculateBurnRate` with varied exchange rates; verify fallback to 1.0 when missing.
 
 ---
 

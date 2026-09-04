@@ -70,40 +70,38 @@ Subscription _sub({
   required DateTime due,
   Category category = Category.streaming,
   int? id,
-}) =>
-    Subscription(
-      id: id,
-      name: name,
-      cost: cost,
-      billingCycle: cycle,
-      nextDueDate: due,
-      category: category,
-    );
+}) => Subscription(
+  id: id,
+  name: name,
+  cost: cost,
+  billingCycle: cycle,
+  nextDueDate: due,
+  category: category,
+);
 
 ProviderContainer _container(SubscriptionRepository repo) {
   return ProviderContainer(
-    overrides: [
-      subscriptionRepositoryProvider.overrideWithValue(repo),
-    ],
+    overrides: [subscriptionRepositoryProvider.overrideWithValue(repo)],
   );
 }
 
 void main() {
   group('SubscriptionNotifier — initial load', () {
-    test('build emits AsyncData with sorted list + computed totals',
-        () async {
+    test('build emits AsyncData with sorted list + computed totals', () async {
       final repo = FakeSubscriptionRepository();
       repo.seed([
         _sub(
-            name: 'Spotify',
-            cost: 9.99,
-            cycle: BillingCycle.monthly,
-            due: DateTime(2026, 9, 16)),
+          name: 'Spotify',
+          cost: 9.99,
+          cycle: BillingCycle.monthly,
+          due: DateTime(2026, 9, 16),
+        ),
         _sub(
-            name: 'iCloud',
-            cost: 2.99,
-            cycle: BillingCycle.monthly,
-            due: DateTime(2026, 9, 15)),
+          name: 'iCloud',
+          cost: 2.99,
+          cycle: BillingCycle.monthly,
+          due: DateTime(2026, 9, 15),
+        ),
       ]);
       final container = _container(repo);
       addTearDown(container.dispose);
@@ -170,19 +168,24 @@ void main() {
       final emissionCountBefore = emissions.length;
 
       final notifier = container.read(subscriptionNotifierProvider.notifier);
-      await notifier.addSubscription(_sub(
-        name: 'Netflix',
-        cost: 14.99,
-        cycle: BillingCycle.monthly,
-        due: DateTime(2026, 9, 20),
-      ));
+      await notifier.addSubscription(
+        _sub(
+          name: 'Netflix',
+          cost: 14.99,
+          cycle: BillingCycle.monthly,
+          due: DateTime(2026, 9, 20),
+        ),
+      );
 
-      final newEmissions =
-          emissions.sublist(emissionCountBefore).toList();
-      final dataEmissions =
-          newEmissions.whereType<AsyncData<SubscriptionsState>>().toList();
-      expect(dataEmissions, hasLength(1),
-          reason: 'expected exactly one AsyncData emission per mutation');
+      final newEmissions = emissions.sublist(emissionCountBefore).toList();
+      final dataEmissions = newEmissions
+          .whereType<AsyncData<SubscriptionsState>>()
+          .toList();
+      expect(
+        dataEmissions,
+        hasLength(1),
+        reason: 'expected exactly one AsyncData emission per mutation',
+      );
 
       final after = dataEmissions.last.value;
       expect(after.count, 1);
@@ -195,44 +198,43 @@ void main() {
       'addSubscription with yearly cost uses cost/12 in the monthly total',
       () async {
         final notifier = container.read(subscriptionNotifierProvider.notifier);
-        await notifier.addSubscription(_sub(
-          name: 'Domain',
-          cost: 120.0,
-          cycle: BillingCycle.yearly,
-          due: DateTime(2026, 9, 20),
-        ));
-        final after = container
-            .read(subscriptionNotifierProvider)
-            .requireValue;
+        await notifier.addSubscription(
+          _sub(
+            name: 'Domain',
+            cost: 120.0,
+            cycle: BillingCycle.yearly,
+            due: DateTime(2026, 9, 20),
+          ),
+        );
+        final after = container.read(subscriptionNotifierProvider).requireValue;
         expect(after.monthlyBurnRate, closeTo(10.0, 1e-9));
         expect(after.yearlyBurnRate, closeTo(120.0, 1e-9));
         expect(after.count, 1);
       },
     );
 
-    test('updateSubscription → one AsyncData with recomputed totals',
-        () async {
+    test('updateSubscription → one AsyncData with recomputed totals', () async {
       final notifier = container.read(subscriptionNotifierProvider.notifier);
-      await notifier.addSubscription(_sub(
-        name: 'Netflix',
-        cost: 14.99,
-        cycle: BillingCycle.monthly,
-        due: DateTime(2026, 9, 20),
-      ));
+      await notifier.addSubscription(
+        _sub(
+          name: 'Netflix',
+          cost: 14.99,
+          cycle: BillingCycle.monthly,
+          due: DateTime(2026, 9, 20),
+        ),
+      );
 
-      final current =
-          container.read(subscriptionNotifierProvider).requireValue;
+      final current = container.read(subscriptionNotifierProvider).requireValue;
       final existing = current.subscriptions.first;
       final emissionCountBefore = emissions.length;
-      await notifier.updateSubscription(existing.copyWith(
-        name: 'Netflix Premium',
-        cost: 22.99,
-      ));
+      await notifier.updateSubscription(
+        existing.copyWith(name: 'Netflix Premium', cost: 22.99),
+      );
 
-      final newEmissions =
-          emissions.sublist(emissionCountBefore).toList();
-      final dataEmissions =
-          newEmissions.whereType<AsyncData<SubscriptionsState>>().toList();
+      final newEmissions = emissions.sublist(emissionCountBefore).toList();
+      final dataEmissions = newEmissions
+          .whereType<AsyncData<SubscriptionsState>>()
+          .toList();
       expect(dataEmissions, hasLength(1));
       final after = dataEmissions.last.value;
       expect(after.count, 1);
@@ -241,33 +243,36 @@ void main() {
       expect(after.yearlyBurnRate, closeTo(275.88, 1e-9));
     });
 
-    test('deleteSubscription → one AsyncData with recomputed totals',
-        () async {
+    test('deleteSubscription → one AsyncData with recomputed totals', () async {
       final notifier = container.read(subscriptionNotifierProvider.notifier);
-      await notifier.addSubscription(_sub(
-        name: 'Netflix',
-        cost: 14.99,
-        cycle: BillingCycle.monthly,
-        due: DateTime(2026, 9, 20),
-      ));
-      await notifier.addSubscription(_sub(
-        name: 'Spotify',
-        cost: 9.99,
-        cycle: BillingCycle.monthly,
-        due: DateTime(2026, 9, 21),
-      ));
+      await notifier.addSubscription(
+        _sub(
+          name: 'Netflix',
+          cost: 14.99,
+          cycle: BillingCycle.monthly,
+          due: DateTime(2026, 9, 20),
+        ),
+      );
+      await notifier.addSubscription(
+        _sub(
+          name: 'Spotify',
+          cost: 9.99,
+          cycle: BillingCycle.monthly,
+          due: DateTime(2026, 9, 21),
+        ),
+      );
 
-      final current =
-          container.read(subscriptionNotifierProvider).requireValue;
-      final netflix =
-          current.subscriptions.firstWhere((s) => s.name == 'Netflix');
+      final current = container.read(subscriptionNotifierProvider).requireValue;
+      final netflix = current.subscriptions.firstWhere(
+        (s) => s.name == 'Netflix',
+      );
       final emissionCountBefore = emissions.length;
       await notifier.deleteSubscription(netflix.id!);
 
-      final newEmissions =
-          emissions.sublist(emissionCountBefore).toList();
-      final dataEmissions =
-          newEmissions.whereType<AsyncData<SubscriptionsState>>().toList();
+      final newEmissions = emissions.sublist(emissionCountBefore).toList();
+      final dataEmissions = newEmissions
+          .whereType<AsyncData<SubscriptionsState>>()
+          .toList();
       expect(dataEmissions, hasLength(1));
       final after = dataEmissions.last.value;
       expect(after.count, 1);
@@ -276,22 +281,26 @@ void main() {
       expect(after.yearlyBurnRate, closeTo(119.88, 1e-9));
     });
 
-    test('mutation after a DB error surfaces the error as AsyncError',
-        () async {
-      repo.throwOnNext = StateError('write failed');
-      final notifier = container.read(subscriptionNotifierProvider.notifier);
-      await expectLater(
-        notifier.addSubscription(_sub(
-          name: 'Netflix',
-          cost: 14.99,
-          cycle: BillingCycle.monthly,
-          due: DateTime(2026, 9, 20),
-        )),
-        throwsA(isA<StateError>()),
-      );
-      final snap = container.read(subscriptionNotifierProvider);
-      expect(snap.hasError, isTrue);
-      expect(snap.error, isA<StateError>());
-    });
+    test(
+      'mutation after a DB error surfaces the error as AsyncError',
+      () async {
+        repo.throwOnNext = StateError('write failed');
+        final notifier = container.read(subscriptionNotifierProvider.notifier);
+        await expectLater(
+          notifier.addSubscription(
+            _sub(
+              name: 'Netflix',
+              cost: 14.99,
+              cycle: BillingCycle.monthly,
+              due: DateTime(2026, 9, 20),
+            ),
+          ),
+          throwsA(isA<StateError>()),
+        );
+        final snap = container.read(subscriptionNotifierProvider);
+        expect(snap.hasError, isTrue);
+        expect(snap.error, isA<StateError>());
+      },
+    );
   });
 }

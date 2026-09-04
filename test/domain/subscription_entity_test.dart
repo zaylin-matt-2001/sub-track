@@ -3,14 +3,14 @@ import 'package:sub_track/core/constants/enums.dart';
 import 'package:sub_track/features/subscriptions/domain/entities/subscription.dart';
 
 Subscription _sample({int? id, String? name, double? cost}) => Subscription(
-      id: id,
-      name: name ?? 'Netflix',
-      cost: cost ?? 14.99,
-      billingCycle: BillingCycle.monthly,
-      nextDueDate: DateTime(2026, 9, 15),
-      category: Category.streaming,
-      iconName: 'streaming',
-    );
+  id: id,
+  name: name ?? 'Netflix',
+  cost: cost ?? 14.99,
+  billingCycle: BillingCycle.monthly,
+  nextDueDate: DateTime(2026, 9, 15),
+  category: Category.streaming,
+  iconName: 'streaming',
+);
 
 void main() {
   group('Subscription entity — contract', () {

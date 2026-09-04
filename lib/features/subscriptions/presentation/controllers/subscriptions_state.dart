@@ -22,9 +22,17 @@ class SubscriptionsState {
     count: 0,
   );
 
-  factory SubscriptionsState.from(List<Subscription> subscriptions) {
+  factory SubscriptionsState.from(
+    List<Subscription> subscriptions, {
+    Map<String, double> exchangeRates = const <String, double>{},
+    String baseCurrency = 'USD',
+  }) {
     final sorted = getUpcomingBills(subscriptions);
-    final burn = calculateBurnRate(subscriptions);
+    final burn = calculateBurnRate(
+      subscriptions,
+      exchangeRates: exchangeRates,
+      baseCurrency: baseCurrency,
+    );
     return SubscriptionsState(
       subscriptions: sorted,
       monthlyBurnRate: burn.monthly,
@@ -45,11 +53,11 @@ class SubscriptionsState {
 
   @override
   int get hashCode => Object.hash(
-        monthlyBurnRate,
-        yearlyBurnRate,
-        count,
-        Object.hashAll(subscriptions),
-      );
+    monthlyBurnRate,
+    yearlyBurnRate,
+    count,
+    Object.hashAll(subscriptions),
+  );
 
   static bool _listEqual(List<Subscription> a, List<Subscription> b) {
     if (a.length != b.length) return false;

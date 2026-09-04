@@ -18,10 +18,12 @@ class ExpenseSummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Monthly burn rate',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                )),
+            Text(
+              'Monthly burn rate',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 4),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -44,10 +46,7 @@ class ExpenseSummaryCard extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  child: _Stat(
-                    label: 'Subscriptions',
-                    value: '${state.count}',
-                  ),
+                  child: _Stat(label: 'Subscriptions', value: '${state.count}'),
                 ),
               ],
             ),
@@ -70,9 +69,12 @@ class _Stat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        )),
+        Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 2),
         Text(value, style: theme.textTheme.titleLarge),
       ],

@@ -18,10 +18,7 @@ class DashboardEmptyState extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
-            Text(
-              'No subscriptions yet',
-              style: theme.textTheme.titleLarge,
-            ),
+            Text('No subscriptions yet', style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
               'Tap + to add your first subscription.',

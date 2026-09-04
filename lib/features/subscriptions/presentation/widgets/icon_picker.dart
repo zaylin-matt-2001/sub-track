@@ -39,7 +39,9 @@ class IconPicker extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               border: selected
                   ? Border.all(
-                      color: Theme.of(context).colorScheme.primary, width: 2)
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 2,
+                    )
                   : null,
             ),
             child: Icon(

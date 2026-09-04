@@ -29,9 +29,7 @@ class AddEditSubscriptionSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: AddEditSubscriptionSheet(existing: existing),
       ),
     );
@@ -53,6 +51,7 @@ class _AddEditSubscriptionSheetState
   String? _iconId;
   bool _iconPickedExplicitly = false;
   bool _saving = false;
+  late bool _isActive;
 
   bool get _isEdit => widget.existing != null;
 
@@ -68,6 +67,7 @@ class _AddEditSubscriptionSheetState
       _dueDate = e.nextDueDate;
       _iconId = e.iconName ?? categoryDefaultIconId[e.category];
       _iconPickedExplicitly = e.iconName != null;
+      _isActive = e.isActive;
     } else {
       _nameCtl = TextEditingController();
       _costCtl = TextEditingController();
@@ -76,6 +76,7 @@ class _AddEditSubscriptionSheetState
       _dueDate = _todayDateOnly();
       _iconId = categoryDefaultIconId[_category];
       _iconPickedExplicitly = false;
+      _isActive = true;
     }
   }
 
@@ -109,10 +110,16 @@ class _AddEditSubscriptionSheetState
 
   Future<void> _pickDate() async {
     final today = _todayDateOnly();
-    final first = DateTime(today.year - _dateMinYearsBack.toInt(),
-        today.month, today.day);
-    final last = DateTime(today.year + _dateMaxYearsAhead.toInt(),
-        today.month, today.day);
+    final first = DateTime(
+      today.year - _dateMinYearsBack.toInt(),
+      today.month,
+      today.day,
+    );
+    final last = DateTime(
+      today.year + _dateMaxYearsAhead.toInt(),
+      today.month,
+      today.day,
+    );
     final initial = _dueDate.isBefore(first)
         ? first
         : (_dueDate.isAfter(last) ? last : _dueDate);
@@ -144,15 +151,15 @@ class _AddEditSubscriptionSheetState
     return null;
   }
 
-  double _parseCost(String raw) => double.parse(raw.replaceAll(RegExp(r'[\$,\s]'), ''));
+  double _parseCost(String raw) =>
+      double.parse(raw.replaceAll(RegExp(r'[\$,\s]'), ''));
 
   Future<void> _onSave() async {
     if (_saving) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_iconId == null || !subscriptionIconCatalog.containsKey(_iconId)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pick an icon')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Pick an icon')));
       return;
     }
 
@@ -170,6 +177,7 @@ class _AddEditSubscriptionSheetState
           nextDueDate: _dueDate,
           category: _category,
           iconName: _iconId,
+          isActive: _isActive,
         );
         await notifier.updateSubscription(updated);
       } else {
@@ -180,6 +188,7 @@ class _AddEditSubscriptionSheetState
           nextDueDate: _dueDate,
           category: _category,
           iconName: _iconId,
+          isActive: _isActive,
         );
         await notifier.addSubscription(entity);
       }
@@ -246,7 +255,9 @@ class _AddEditSubscriptionSheetState
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true, signed: false),
+                  decimal: true,
+                  signed: false,
+                ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9\.\$,\s]')),
                 ],
@@ -256,9 +267,13 @@ class _AddEditSubscriptionSheetState
               SegmentedButton<BillingCycle>(
                 segments: const [
                   ButtonSegment(
-                      value: BillingCycle.monthly, label: Text('Monthly')),
+                    value: BillingCycle.monthly,
+                    label: Text('Monthly'),
+                  ),
                   ButtonSegment(
-                      value: BillingCycle.yearly, label: Text('Yearly')),
+                    value: BillingCycle.yearly,
+                    label: Text('Yearly'),
+                  ),
                 ],
                 selected: {_cycle},
                 onSelectionChanged: (set) => setState(() => _cycle = set.first),
@@ -272,10 +287,12 @@ class _AddEditSubscriptionSheetState
                   border: OutlineInputBorder(),
                 ),
                 items: Category.values
-                    .map((c) => DropdownMenuItem<Category>(
-                          value: c,
-                          child: Text(c.storageId),
-                        ))
+                    .map(
+                      (c) => DropdownMenuItem<Category>(
+                        value: c,
+                        child: Text(c.storageId),
+                      ),
+                    )
                     .toList(),
                 onChanged: (c) {
                   if (c != null) _onCategoryChanged(c);
@@ -284,9 +301,26 @@ class _AddEditSubscriptionSheetState
               const SizedBox(height: 16),
               Text('Icon', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
-              IconPicker(
-                selectedId: _iconId,
-                onChanged: _onIconPicked,
+              IconPicker(selectedId: _iconId, onChanged: _onIconPicked),
+              const SizedBox(height: 16),
+              SwitchListTile.adaptive(
+                key: const ValueKey('active-switch'),
+                title: Text(
+                  _isActive ? 'Active' : 'Paused',
+                  style: theme.textTheme.titleMedium,
+                ),
+                subtitle: Text(
+                  _isActive
+                      ? 'Counts toward monthly and yearly burn rate.'
+                      : 'Excluded from burn rate until reactivated.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                value: _isActive,
+                onChanged: _saving
+                    ? null
+                    : (v) => setState(() => _isActive = v),
               ),
               const SizedBox(height: 16),
               InputDecorator(
@@ -325,9 +359,11 @@ class _AddEditSubscriptionSheetState
                     child: FilledButton(
                       key: const ValueKey('save-button'),
                       onPressed: _saving ? null : _onSave,
-                      child: Text(_saving
-                          ? 'Saving…'
-                          : (_isEdit ? 'Save changes' : 'Save')),
+                      child: Text(
+                        _saving
+                            ? 'Saving…'
+                            : (_isEdit ? 'Save changes' : 'Save'),
+                      ),
                     ),
                   ),
                 ],

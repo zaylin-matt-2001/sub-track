@@ -9,7 +9,8 @@ class DueDateLabel {
   const DueDateLabel(this.text, this.severity);
 }
 
-DateTime _dateOnly(DateTime value) => DateTime(value.year, value.month, value.day);
+DateTime _dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
 
 DueDateLabel dueDateLabel(DateTime dueDate, DateTime today) {
   final due = _dateOnly(dueDate);

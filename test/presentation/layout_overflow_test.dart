@@ -27,14 +27,14 @@ class _StaticRepo implements SubscriptionRepository {
 }
 
 Subscription _huge() => Subscription(
-      id: 1,
-      name: 'Very-Long Subscription Name That Should Ellipsize',
-      cost: 1234567890.12,
-      billingCycle: BillingCycle.monthly,
-      nextDueDate: DateTime(2026, 9, 20),
-      category: Category.streaming,
-      iconName: 'streaming',
-    );
+  id: 1,
+  name: 'Very-Long Subscription Name That Should Ellipsize',
+  cost: 1234567890.12,
+  billingCycle: BillingCycle.monthly,
+  nextDueDate: DateTime(2026, 9, 20),
+  category: Category.streaming,
+  iconName: 'streaming',
+);
 
 Future<void> _pumpNarrow(WidgetTester tester, Widget child) async {
   tester.view.physicalSize = const Size(360, 720);
@@ -45,20 +45,20 @@ Future<void> _pumpNarrow(WidgetTester tester, Widget child) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        subscriptionRepositoryProvider.overrideWithValue(_StaticRepo([_huge()])),
+        subscriptionRepositoryProvider.overrideWithValue(
+          _StaticRepo([_huge()]),
+        ),
       ],
-      child: MaterialApp(
-        theme: AppTheme.light(),
-        home: child,
-      ),
+      child: MaterialApp(theme: AppTheme.light(), home: child),
     ),
   );
   await tester.pumpAndSettle();
 }
 
 void main() {
-  testWidgets('very-large cost renders without overflow on a narrow viewport',
-      (tester) async {
+  testWidgets('very-large cost renders without overflow on a narrow viewport', (
+    tester,
+  ) async {
     await _pumpNarrow(tester, const DashboardScreen());
 
     // No exception during layout is the primary assertion. Verify the cost
@@ -70,19 +70,15 @@ void main() {
     // RenderFlex in our tree had overflowed, pumpAndSettle would have thrown.
   });
 
-  testWidgets(
-    'long name in SubscriptionTile does not overflow',
-    (tester) async {
-      final tile = SubscriptionTile(
-        subscription: _huge(),
-        onConfirmDelete: () async => false,
-      );
-      await _pumpNarrow(
-        tester,
-        Scaffold(body: ListView(children: [tile])),
-      );
+  testWidgets('long name in SubscriptionTile does not overflow', (
+    tester,
+  ) async {
+    final tile = SubscriptionTile(
+      subscription: _huge(),
+      onConfirmDelete: () async => false,
+    );
+    await _pumpNarrow(tester, Scaffold(body: ListView(children: [tile])));
 
-      expect(find.textContaining('Very-Long'), findsOneWidget);
-    },
-  );
+    expect(find.textContaining('Very-Long'), findsOneWidget);
+  });
 }

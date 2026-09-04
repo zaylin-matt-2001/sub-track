@@ -7,6 +7,18 @@ import 'package:sub_track/features/subscriptions/domain/entities/subscription.da
 import 'package:sub_track/features/subscriptions/domain/repositories/subscription_repository.dart';
 import 'package:sub_track/features/subscriptions/presentation/controllers/providers.dart';
 import 'package:sub_track/features/subscriptions/presentation/widgets/add_edit_subscription_sheet.dart';
+import 'package:sub_track/features/settings/presentation/controllers/exchange_rate_notifier.dart';
+import 'package:sub_track/features/settings/presentation/controllers/settings_notifier.dart';
+
+class _TestSettingsNotifier extends SettingsNotifier {
+  @override
+  Future<SettingsState> build() async => SettingsState.defaults;
+}
+
+class _TestExchangeRateNotifier extends ExchangeRateNotifier {
+  @override
+  Future<Map<String, double>> build() async => const <String, double>{};
+}
 
 class _RecordingRepo implements SubscriptionRepository {
   final List<Subscription> rows = <Subscription>[];
@@ -46,11 +58,14 @@ class _RecordingRepo implements SubscriptionRepository {
   }
 }
 
-Subscription _seed(String name, double cost,
-    {BillingCycle cycle = BillingCycle.monthly,
-    DateTime? due,
-    Category category = Category.streaming,
-    String? iconName}) {
+Subscription _seed(
+  String name,
+  double cost, {
+  BillingCycle cycle = BillingCycle.monthly,
+  DateTime? due,
+  Category category = Category.streaming,
+  String? iconName,
+}) {
   return Subscription(
     id: 1,
     name: name,
@@ -77,6 +92,10 @@ Future<void> _pumpSheet(
     ProviderScope(
       overrides: [
         subscriptionRepositoryProvider.overrideWithValue(repo),
+        settingsNotifierProvider.overrideWith(_TestSettingsNotifier.new),
+        exchangeRateNotifierProvider.overrideWith(
+          _TestExchangeRateNotifier.new,
+        ),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
@@ -84,10 +103,8 @@ Future<void> _pumpSheet(
           builder: (context) => Scaffold(
             body: Center(
               child: ElevatedButton(
-                onPressed: () => AddEditSubscriptionSheet.show(
-                  context,
-                  existing: existing,
-                ),
+                onPressed: () =>
+                    AddEditSubscriptionSheet.show(context, existing: existing),
                 child: const Text('open'),
               ),
             ),
@@ -130,8 +147,9 @@ Future<void> _fillForm(
 
 void main() {
   group('AddEditSubscriptionSheet — validation', () {
-    testWidgets('empty name shows inline error and keeps sheet open',
-        (tester) async {
+    testWidgets('empty name shows inline error and keeps sheet open', (
+      tester,
+    ) async {
       final repo = _RecordingRepo();
       await _pumpSheet(tester, repo: repo);
 
@@ -168,8 +186,9 @@ void main() {
         // OS-level truncation: only 30 chars stored. The validator never sees
         // an over-length string, but a counter is rendered so the user knows
         // the cap. This documents the chosen mechanism.
-        final nameField =
-            tester.widget<TextFormField>(find.byKey(const ValueKey('name-field')));
+        final nameField = tester.widget<TextFormField>(
+          find.byKey(const ValueKey('name-field')),
+        );
         expect(nameField.controller!.text.length, 30);
 
         await tester.tap(find.byKey(const ValueKey('save-button')));
@@ -190,24 +209,21 @@ void main() {
       expect(repo.calls, isNot(contains('add')));
     });
 
-    testWidgets(
-      'negative sign is filtered by the cost input formatter; '
-      'remaining digits > 0 are accepted',
-      (tester) async {
-        final repo = _RecordingRepo();
-        await _pumpSheet(tester, repo: repo);
+    testWidgets('negative sign is filtered by the cost input formatter; '
+        'remaining digits > 0 are accepted', (tester) async {
+      final repo = _RecordingRepo();
+      await _pumpSheet(tester, repo: repo);
 
-        // The decimal-only formatter strips the leading "-", so "-5"
-        // becomes "5" in the field. That value passes validation (and is
-        // preserved on save). This documents the intended behavior.
-        await _fillForm(tester, name: 'X', cost: '-5');
-        await tester.tap(find.byKey(const ValueKey('save-button')));
-        await tester.pumpAndSettle();
+      // The decimal-only formatter strips the leading "-", so "-5"
+      // becomes "5" in the field. That value passes validation (and is
+      // preserved on save). This documents the intended behavior.
+      await _fillForm(tester, name: 'X', cost: '-5');
+      await tester.tap(find.byKey(const ValueKey('save-button')));
+      await tester.pumpAndSettle();
 
-        expect(repo.calls, contains('add'));
-        expect(repo.rows.single.cost, 5);
-      },
-    );
+      expect(repo.calls, contains('add'));
+      expect(repo.rows.single.cost, 5);
+    });
 
     testWidgets('non-numeric cost is rejected', (tester) async {
       final repo = _RecordingRepo();
@@ -235,8 +251,9 @@ void main() {
   });
 
   group('AddEditSubscriptionSheet — add path', () {
-    testWidgets('saves a new row, closes the sheet, updates totals',
-        (tester) async {
+    testWidgets('saves a new row, closes the sheet, updates totals', (
+      tester,
+    ) async {
       final repo = _RecordingRepo();
       await _pumpSheet(tester, repo: repo);
 
@@ -249,10 +266,16 @@ void main() {
       expect(repo.rows.single.name, 'Netflix');
       expect(repo.rows.single.cost, 14.99);
       expect(repo.rows.single.billingCycle, BillingCycle.monthly);
-      expect(repo.rows.single.iconName, 'other',
-          reason: 'default category is Other → icon is "other"');
-      expect(find.text('Add subscription'), findsNothing,
-          reason: 'sheet must close on successful save');
+      expect(
+        repo.rows.single.iconName,
+        'other',
+        reason: 'default category is Other → icon is "other"',
+      );
+      expect(
+        find.text('Add subscription'),
+        findsNothing,
+        reason: 'sheet must close on successful save',
+      );
     });
   });
 
@@ -279,8 +302,9 @@ void main() {
   });
 
   group('AddEditSubscriptionSheet — cancel', () {
-    testWidgets('cancel does not mutate state and closes the sheet',
-        (tester) async {
+    testWidgets('cancel does not mutate state and closes the sheet', (
+      tester,
+    ) async {
       final repo = _RecordingRepo();
       await _pumpSheet(tester, repo: repo);
 
@@ -294,63 +318,168 @@ void main() {
   });
 
   group('AddEditSubscriptionSheet — icon default-tracking', () {
+    testWidgets('changing the category moves the icon to that category default '
+        'until the user picks explicitly', (tester) async {
+      final repo = _RecordingRepo();
+      await _pumpSheet(tester, repo: repo);
+
+      // Defaults: Category.other → icon "other".
+      // Switch to Streaming — default should follow.
+      await tester.tap(find.byType(DropdownButtonFormField<Category>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Streaming').last);
+      await tester.pumpAndSettle();
+
+      // The icon grid should now have the "streaming" cell selected.
+      // Tap a non-default icon (music) to make the pick explicit.
+      await tester.tap(find.byIcon(Icons.music_note));
+      await tester.pumpAndSettle();
+
+      // Switch category again — explicit pick must NOT move.
+      await tester.tap(find.byType(DropdownButtonFormField<Category>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Software').last);
+      await tester.pumpAndSettle();
+
+      await _fillForm(tester, name: 'Music', cost: '4.99');
+      await tester.tap(find.byKey(const ValueKey('save-button')));
+      await tester.pumpAndSettle();
+
+      expect(repo.rows.single.category, Category.software);
+      expect(
+        repo.rows.single.iconName,
+        'music',
+        reason: 'explicit icon pick must stick across category changes',
+      );
+    });
+
+    testWidgets('in edit mode the stored iconName is treated as explicit', (
+      tester,
+    ) async {
+      final repo = _RecordingRepo()
+        ..rows.add(
+          _seed(
+            'Netflix',
+            14.99,
+            category: Category.software,
+            iconName: 'design',
+          ),
+        );
+      final existing = repo.rows.single;
+
+      await _pumpSheet(tester, repo: repo, existing: existing);
+
+      // Changing category should NOT override the explicit 'design' icon.
+      await tester.tap(find.byType(DropdownButtonFormField<Category>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fitness').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('save-button')));
+      await tester.pumpAndSettle();
+
+      expect(repo.rows.single.category, Category.fitness);
+      expect(repo.rows.single.iconName, 'design');
+    });
+  });
+
+  // ── M8: Active/Paused toggle widget tests ────────────────────────────────
+  group('M8 — Active/Paused toggle', () {
     testWidgets(
-      'changing the category moves the icon to that category default '
-      'until the user picks explicitly',
+      'Active toggle is ON by default when adding a new subscription',
       (tester) async {
         final repo = _RecordingRepo();
         await _pumpSheet(tester, repo: repo);
 
-        // Defaults: Category.other → icon "other".
-        // Switch to Streaming — default should follow.
-        await tester.tap(find.byType(DropdownButtonFormField<Category>));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Streaming').last);
+        // Scroll to the SwitchListTile which is near the top
+        await tester.ensureVisible(find.byType(SwitchListTile));
         await tester.pumpAndSettle();
 
-        // The icon grid should now have the "streaming" cell selected.
-        // Tap a non-default icon (music) to make the pick explicit.
-        await tester.tap(find.byIcon(Icons.music_note));
-        await tester.pumpAndSettle();
-
-        // Switch category again — explicit pick must NOT move.
-        await tester.tap(find.byType(DropdownButtonFormField<Category>));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Software').last);
-        await tester.pumpAndSettle();
-
-        await _fillForm(tester, name: 'Music', cost: '4.99');
-        await tester.tap(find.byKey(const ValueKey('save-button')));
-        await tester.pumpAndSettle();
-
-        expect(repo.rows.single.category, Category.software);
-        expect(repo.rows.single.iconName, 'music',
-            reason: 'explicit icon pick must stick across category changes');
+        final toggle = tester.widget<SwitchListTile>(
+          find.byType(SwitchListTile),
+        );
+        expect(toggle.value, isTrue);
       },
     );
 
     testWidgets(
-      'in edit mode the stored iconName is treated as explicit',
+      'Active toggle reflects existing subscription.isActive=false in edit mode',
       (tester) async {
         final repo = _RecordingRepo()
-          ..rows.add(_seed('Netflix', 14.99,
-              category: Category.software, iconName: 'design'));
-        final existing = repo.rows.single;
+          ..rows.add(
+            _seed(
+              'Netflix',
+              14.99,
+              iconName: 'streaming',
+            ).copyWith(isActive: false),
+          );
+        await _pumpSheet(tester, repo: repo, existing: repo.rows.single);
 
-        await _pumpSheet(tester, repo: repo, existing: existing);
-
-        // Changing category should NOT override the explicit 'design' icon.
-        await tester.tap(find.byType(DropdownButtonFormField<Category>));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Fitness').last);
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byKey(const ValueKey('save-button')));
+        await tester.ensureVisible(find.byType(SwitchListTile));
         await tester.pumpAndSettle();
 
-        expect(repo.rows.single.category, Category.fitness);
-        expect(repo.rows.single.iconName, 'design');
+        final toggle = tester.widget<SwitchListTile>(
+          find.byType(SwitchListTile),
+        );
+        expect(toggle.value, isFalse);
       },
     );
+
+    testWidgets('Toggling off then saving persists isActive=false', (
+      tester,
+    ) async {
+      final repo = _RecordingRepo();
+      await _pumpSheet(tester, repo: repo);
+
+      // Fill required fields
+      await tester.enterText(
+        find.byKey(const ValueKey('name-field')),
+        'Spotify',
+      );
+      await tester.enterText(find.byKey(const ValueKey('cost-field')), '9.99');
+      await tester.pumpAndSettle();
+
+      // Scroll to and turn off the Active toggle
+      await tester.ensureVisible(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+
+      // Verify toggle is now off
+      final toggle = tester.widget<SwitchListTile>(find.byType(SwitchListTile));
+      expect(toggle.value, isFalse);
+
+      // Save
+      await tester.ensureVisible(find.byKey(const ValueKey('save-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-button')));
+      await tester.pumpAndSettle();
+
+      expect(repo.rows.single.name, 'Spotify');
+      expect(repo.rows.single.isActive, isFalse);
+    });
+
+    testWidgets('Edit mode: toggling from false to true saves isActive=true', (
+      tester,
+    ) async {
+      final repo = _RecordingRepo()
+        ..rows.add(
+          _seed('Hulu', 7.99, iconName: 'streaming').copyWith(isActive: false),
+        );
+      await _pumpSheet(tester, repo: repo, existing: repo.rows.single);
+
+      // Toggle back to active
+      await tester.ensureVisible(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const ValueKey('save-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-button')));
+      await tester.pumpAndSettle();
+
+      expect(repo.rows.single.isActive, isTrue);
+    });
   });
 }

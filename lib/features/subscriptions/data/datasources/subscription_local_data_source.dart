@@ -25,6 +25,8 @@ class SubscriptionLocalDataSource {
       nextDueDate: model.nextDueDate,
       category: model.category,
       iconName: model.iconName,
+      isActive: model.isActive,
+      currencyCode: model.currencyCode,
     );
   }
 

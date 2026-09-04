@@ -6,6 +6,7 @@ import '../widgets/add_edit_subscription_sheet.dart';
 import '../widgets/dashboard_empty_state.dart';
 import '../widgets/expense_summary_card.dart';
 import '../widgets/subscription_tile.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -15,10 +16,20 @@ class DashboardScreen extends ConsumerWidget {
     final asyncState = ref.watch(subscriptionNotifierProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('SubTrack')),
+      appBar: AppBar(
+        title: const Text('SubTrack'),
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () =>
-            AddEditSubscriptionSheet.show(context),
+        onPressed: () => AddEditSubscriptionSheet.show(context),
         tooltip: 'Add subscription',
         child: const Icon(Icons.add),
       ),
@@ -44,9 +55,7 @@ class DashboardScreen extends ConsumerWidget {
           }
           return RefreshIndicator(
             onRefresh: () async {
-              await ref
-                  .read(subscriptionNotifierProvider.notifier)
-                  .refresh();
+              await ref.read(subscriptionNotifierProvider.notifier).refresh();
             },
             child: ListView(
               children: [
@@ -54,10 +63,8 @@ class DashboardScreen extends ConsumerWidget {
                 for (final sub in state.subscriptions)
                   SubscriptionTile(
                     subscription: sub,
-                    onTap: () => AddEditSubscriptionSheet.show(
-                      context,
-                      existing: sub,
-                    ),
+                    onTap: () =>
+                        AddEditSubscriptionSheet.show(context, existing: sub),
                     onConfirmDelete: () async {
                       final ok = await _confirmDelete(context, sub.name);
                       if (!ok) return false;

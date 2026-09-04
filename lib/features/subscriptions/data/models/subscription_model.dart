@@ -11,6 +11,8 @@ class SubscriptionModel {
   final DateTime nextDueDate;
   final Category category;
   final String? iconName;
+  final bool isActive;
+  final String currencyCode;
 
   const SubscriptionModel({
     this.id,
@@ -20,6 +22,8 @@ class SubscriptionModel {
     required this.nextDueDate,
     required this.category,
     this.iconName,
+    required this.isActive,
+    required this.currencyCode,
   });
 
   factory SubscriptionModel.fromMap(Map<String, Object?> map) {
@@ -27,11 +31,12 @@ class SubscriptionModel {
       id: map['id'] as int?,
       name: (map['name'] as String?) ?? '',
       cost: (map['cost'] as num?)?.toDouble() ?? 0.0,
-      billingCycle:
-          BillingCycle.fromStorage(map['billing_cycle'] as String?),
+      billingCycle: BillingCycle.fromStorage(map['billing_cycle'] as String?),
       nextDueDate: _parseDate(map['next_due_date'] as String?),
       category: Category.fromStorage(map['category'] as String?),
       iconName: map['icon_name'] as String?,
+      isActive: ((map['is_active'] as int?) ?? 1) == 1,
+      currencyCode: (map['currency_code'] as String?) ?? 'USD',
     );
   }
 
@@ -43,6 +48,8 @@ class SubscriptionModel {
       'next_due_date': _formatDate(nextDueDate),
       'category': category.storageId,
       'icon_name': iconName,
+      'is_active': isActive ? 1 : 0,
+      'currency_code': currencyCode,
     };
     if (id != null) m['id'] = id;
     return m;
@@ -57,6 +64,8 @@ class SubscriptionModel {
       nextDueDate: entity.nextDueDate,
       category: entity.category,
       iconName: entity.iconName,
+      isActive: entity.isActive,
+      currencyCode: entity.currencyCode,
     );
   }
 
@@ -69,6 +78,8 @@ class SubscriptionModel {
       nextDueDate: nextDueDate,
       category: category,
       iconName: iconName,
+      isActive: isActive,
+      currencyCode: currencyCode,
     );
   }
 }

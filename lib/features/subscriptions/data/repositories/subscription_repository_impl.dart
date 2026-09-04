@@ -16,15 +16,15 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
   @override
   Future<Subscription> add(Subscription subscription) async {
-    final inserted = await _localDataSource
-        .insert(SubscriptionModel.fromEntity(subscription));
+    final inserted = await _localDataSource.insert(
+      SubscriptionModel.fromEntity(subscription),
+    );
     return inserted.toEntity();
   }
 
   @override
   Future<void> update(Subscription subscription) async {
-    await _localDataSource
-        .update(SubscriptionModel.fromEntity(subscription));
+    await _localDataSource.update(SubscriptionModel.fromEntity(subscription));
   }
 
   @override

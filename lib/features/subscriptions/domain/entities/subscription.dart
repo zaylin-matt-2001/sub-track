@@ -8,6 +8,8 @@ class Subscription {
   final DateTime nextDueDate;
   final Category category;
   final String? iconName;
+  final bool isActive;
+  final String currencyCode;
 
   const Subscription({
     this.id,
@@ -17,6 +19,8 @@ class Subscription {
     required this.nextDueDate,
     required this.category,
     this.iconName,
+    this.isActive = true,
+    this.currencyCode = 'USD',
   });
 
   Subscription copyWith({
@@ -27,6 +31,8 @@ class Subscription {
     DateTime? nextDueDate,
     Category? category,
     String? iconName,
+    bool? isActive,
+    String? currencyCode,
   }) {
     return Subscription(
       id: id ?? this.id,
@@ -36,6 +42,8 @@ class Subscription {
       nextDueDate: nextDueDate ?? this.nextDueDate,
       category: category ?? this.category,
       iconName: iconName ?? this.iconName,
+      isActive: isActive ?? this.isActive,
+      currencyCode: currencyCode ?? this.currencyCode,
     );
   }
 
@@ -49,17 +57,21 @@ class Subscription {
         other.billingCycle == billingCycle &&
         other.nextDueDate == nextDueDate &&
         other.category == category &&
-        other.iconName == iconName;
+        other.iconName == iconName &&
+        other.isActive == isActive &&
+        other.currencyCode == currencyCode;
   }
 
   @override
   int get hashCode => Object.hash(
-        id,
-        name,
-        cost,
-        billingCycle,
-        nextDueDate,
-        category,
-        iconName,
-      );
+    id,
+    name,
+    cost,
+    billingCycle,
+    nextDueDate,
+    category,
+    iconName,
+    isActive,
+    currencyCode,
+  );
 }

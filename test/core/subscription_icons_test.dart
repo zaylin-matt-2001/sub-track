@@ -28,10 +28,16 @@ void main() {
       ];
 
       for (final id in expectedIds) {
-        expect(subscriptionIconCatalog.containsKey(id), isTrue,
-            reason: 'missing icon id: $id');
-        expect(subscriptionIconCatalog[id], isA<IconData>(),
-            reason: 'icon id has null data: $id');
+        expect(
+          subscriptionIconCatalog.containsKey(id),
+          isTrue,
+          reason: 'missing icon id: $id',
+        );
+        expect(
+          subscriptionIconCatalog[id],
+          isA<IconData>(),
+          reason: 'icon id has null data: $id',
+        );
       }
     });
   });
