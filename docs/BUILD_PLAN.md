@@ -1,7 +1,5 @@
 ## M0 — Project setup & dependencies
 
-_(Completed in v1.0)_
-
 - [x] Add to `pubspec.yaml` dependencies: `flutter_riverpod`, `sqflite`, `path`,
       `path_provider`, `intl`.
 - [x] Add dev dependencies: `sqflite_common_ffi` (desktop + test DB backend).
@@ -19,8 +17,6 @@ _(Completed in v1.0)_
 ---
 
 ## M1 — Core constants & utils (pure)
-
-_(Completed in v1.0)_
 
 - [x] `core/constants/enums.dart` — `BillingCycle`, `Category` with
       string (de)serialization + safe fallbacks ([PRD §3.2](PRD.md#32-enums)).
@@ -40,8 +36,6 @@ _(Completed in v1.0)_
 ---
 
 ## M2 — Domain layer (pure Dart)
-
-_(Completed in v1.0)_
 
 - [x] `domain/entities/subscription.dart` — immutable, `copyWith`, value equality
       ([PRD §3.1](PRD.md#31-entity-subscription), [§3.4](PRD.md#34-model-contract-dart)).
@@ -63,8 +57,6 @@ import under `domain/`.
 
 ## M3 — Data layer
 
-_(Completed in v1.0)_
-
 - [x] `core/database/app_database.dart` — open/create `subtrack.db` in the
       documents dir, `onCreate` DDL ([PRD §3.3](PRD.md#33-sqlite-table-reference-ddl)),
       `onUpgrade` switch, schema version `1`. FFI init path for desktop/tests.
@@ -78,27 +70,11 @@ _(Completed in v1.0)_
       update; delete; malformed/unknown enum & icon rows still load;
       `cost > 0` CHECK enforced.
 
-## M4 — State layer (Riverpod)
-
-_(Completed in v1.0)_
-
 **Done when:** repository tests green.
-
-## M5 — Dashboard UI
-
-_(Completed in v1.0)_
 
 ---
 
-## M6 — Add / Edit sheet
-
-_(Completed in v1.0)_
-
 ## M4 — State layer (Riverpod)
-
-## M7 — Polish & Definition of Done
-
-_(Completed in v1.0)_
 
 - [x] Providers: `appDatabaseProvider` (overridden), `...LocalDataSourceProvider`,
       `subscriptionRepositoryProvider`
@@ -118,8 +94,6 @@ _(Completed in v1.0)_
 
 ## M5 — Dashboard UI ([PRD §5.1](PRD.md#51-screen-1--dashboard-dashboard_screendart))
 
-## M8 — Database Migration (v1 to v2) & Active/Paused Toggle
-
 - [x] `app/theme/app_theme.dart` — M3 light + dark `ColorScheme` (seeded),
       `ThemeMode.system`, overdue/warning color roles.
 - [x] `presentation/screens/dashboard_screen.dart` — `ConsumerWidget`; renders
@@ -132,31 +106,12 @@ _(Completed in v1.0)_
 - [x] Empty state widget.
 - [x] **Tests:** widget test — empty state renders; a seeded list shows correct
       totals and ordering; swipe shows confirm dialog.
-- [ ] `core/database/app_database.dart`: Bump `schemaVersion` to 2.
-- [ ] Implement `onUpgrade`: `ALTER TABLE subscriptions ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`, `ADD COLUMN currency_code TEXT NOT NULL DEFAULT 'USD'`.
-- [ ] Implement `onUpgrade`: `CREATE TABLE settings` and `CREATE TABLE exchange_rates`.
-- [ ] Update `Subscription` entity and `SubscriptionModel` to include `isActive` and `currencyCode`.
-- [ ] Update `CalculateBurnRate` usecase to ignore subscriptions where `isActive == false`.
-- [ ] Add Active/Paused switch to `AddEditSubscriptionSheet`.
-- [ ] Dim paused subscriptions in `SubscriptionTile`.
-- [ ] **Tests:** Verify burn rate ignores paused; DB migration tests if possible; Widget test for the toggle.
 
 **Done when:** dashboard renders real data in light + dark.
 
-## M9 — Multi-Currency & Settings Layer
-
 ---
 
-- [ ] Create `features/settings` folder structure.
-- [ ] Implement `SettingsLocalDataSource` (raw sqflite for settings/exchange_rates).
-- [ ] Implement `SettingsNotifier` and `ExchangeRateNotifier`.
-- [ ] Update `CalculateBurnRate` to accept `Map<String, double> exchangeRates` and `String baseCurrency`, and apply multiplication.
-- [ ] Build `SettingsScreen` UI: Base currency picker, and list of text fields to define exchange rates.
-- [ ] **Tests:** Unit test `CalculateBurnRate` with varied exchange rates; verify fallback to 1.0 when missing.
-
 ## M6 — Add / Edit sheet ([PRD §5.2](PRD.md#52-screen-2--add--edit-modal-add_edit_subscription_sheetdart))
-
-## M10 — Auto-Advance Due Dates
 
 - [x] `presentation/widgets/icon_picker.dart` — single-select scrollable grid
       over the §3.2a catalog.
@@ -172,27 +127,12 @@ _(Completed in v1.0)_
 - [x] **Tests:** widget tests for each validation rule; add path adds a row +
       updates totals; edit path preserves `id`; cancel mutates nothing;
       category change moves the icon until an explicit pick.
-- [ ] Create `domain/usecases/auto_advance_due_dates.dart`.
-- [ ] Pure logic: Loop `nextDueDate` forward by 1 month or 1 year repeatedly until it is `≥ today`.
-- [ ] Update `SubscriptionNotifier.build()` and `refresh()` to invoke `AutoAdvanceDueDates` on all loaded subscriptions.
-- [ ] Batch update the database for any subscription that was modified.
-- [ ] **Tests:** Unit test the auto-advance logic (leap years, month-end wrapping, past due by multiple cycles).
 
 **Done when:** full add/edit/delete loop works with no app restart.
 
-## M11 — Category Breakdown Chart
-
 ---
 
-- [ ] Add `fl_chart` to `pubspec.yaml`.
-- [ ] Create `domain/usecases/get_category_breakdown.dart` (returns sum of active base-currency cost per Category).
-- [ ] Build `CategoryChartWidget` using `PieChart` from `fl_chart`.
-- [ ] Add the chart to `DashboardScreen` (e.g. at the top under the summary card or as a tab/bottom sheet).
-- [ ] **Tests:** Pure logic test for the breakdown grouping.
-
 ## M7 — Polish & Definition of Done
-
-## M12 — Polish v1.1
 
 - [x] Walk the [PRD §9 Definition of Done](PRD.md#9-definition-of-done) checklist.
 - [ ] Persistence across cold restart verified manually on one desktop + one
@@ -206,11 +146,60 @@ _(Completed in v1.0)_
 - [x] `flutter analyze` clean; `flutter test` green.
 - [x] Update [README.md](../README.md) with a one-paragraph description + run/test
       commands.
+
+**Done when:** every DoD box is checked.
+
+---
+
+## M8 — Database Migration (v1 to v2) & Active/Paused Toggle
+
+- [ ] `core/database/app_database.dart`: Bump `schemaVersion` to 2.
+- [ ] Implement `onUpgrade`: `ALTER TABLE subscriptions ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1`, `ADD COLUMN currency_code TEXT NOT NULL DEFAULT 'USD'`.
+- [ ] Implement `onUpgrade`: `CREATE TABLE settings` and `CREATE TABLE exchange_rates`.
+- [ ] Update `Subscription` entity and `SubscriptionModel` to include `isActive` and `currencyCode`.
+- [ ] Update `CalculateBurnRate` usecase to ignore subscriptions where `isActive == false`.
+- [ ] Add Active/Paused switch to `AddEditSubscriptionSheet`.
+- [ ] Dim paused subscriptions in `SubscriptionTile`.
+- [ ] **Tests:** Verify burn rate ignores paused; DB migration tests if possible; Widget test for the toggle.
+
+---
+
+## M9 — Multi-Currency & Settings Layer
+
+- [ ] Create `features/settings` folder structure.
+- [ ] Implement `SettingsLocalDataSource` (raw sqflite for settings/exchange_rates).
+- [ ] Implement `SettingsNotifier` and `ExchangeRateNotifier`.
+- [ ] Update `CalculateBurnRate` to accept `Map<String, double> exchangeRates` and `String baseCurrency`, and apply multiplication.
+- [ ] Build `SettingsScreen` UI: Base currency picker, and list of text fields to define exchange rates.
+- [ ] **Tests:** Unit test `CalculateBurnRate` with varied exchange rates; verify fallback to 1.0 when missing.
+
+---
+
+## M10 — Auto-Advance Due Dates
+
+- [ ] Create `domain/usecases/auto_advance_due_dates.dart`.
+- [ ] Pure logic: Loop `nextDueDate` forward by 1 month or 1 year repeatedly until it is `≥ today`.
+- [ ] Update `SubscriptionNotifier.build()` and `refresh()` to invoke `AutoAdvanceDueDates` on all loaded subscriptions.
+- [ ] Batch update the database for any subscription that was modified.
+- [ ] **Tests:** Unit test the auto-advance logic (leap years, month-end wrapping, past due by multiple cycles).
+
+---
+
+## M11 — Category Breakdown Chart
+
+- [ ] Add `fl_chart` to `pubspec.yaml`.
+- [ ] Create `domain/usecases/get_category_breakdown.dart` (returns sum of active base-currency cost per Category).
+- [ ] Build `CategoryChartWidget` using `PieChart` from `fl_chart`.
+- [ ] Add the chart to `DashboardScreen` (e.g. at the top under the summary card or as a tab/bottom sheet).
+- [ ] **Tests:** Pure logic test for the breakdown grouping.
+
+---
+
+## M12 — Polish v1.1
+
 - [ ] Ensure currency symbols update based on the Base Currency setting, not a hardcoded app-wide constant.
 - [ ] `flutter analyze` clean; `flutter test` green.
 - [ ] Verify offline constraint is unbroken.
-
-**Done when:** every DoD box is checked.
 
 ---
 
