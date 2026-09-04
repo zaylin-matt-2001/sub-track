@@ -77,6 +77,13 @@ class _RecordingRepo implements SubscriptionRepository {
   }
 
   @override
+  Future<void> updateAll(Iterable<Subscription> subscriptions) async {
+    for (final subscription in subscriptions) {
+      await update(subscription);
+    }
+  }
+
+  @override
   Future<void> delete(int id) async {
     rows.removeWhere((r) => r.id == id);
   }

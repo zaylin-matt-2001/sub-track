@@ -28,6 +28,13 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   }
 
   @override
+  Future<void> updateAll(Iterable<Subscription> subscriptions) {
+    return _localDataSource.updateAll(
+      subscriptions.map(SubscriptionModel.fromEntity),
+    );
+  }
+
+  @override
   Future<void> delete(int id) async {
     await _localDataSource.delete(id);
   }

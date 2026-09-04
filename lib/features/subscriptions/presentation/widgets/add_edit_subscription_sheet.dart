@@ -5,12 +5,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/enums.dart';
 import '../../../../core/constants/subscription_icons.dart';
 import '../../domain/entities/subscription.dart';
+import '../../../settings/presentation/controllers/settings_notifier.dart';
 import '../controllers/subscription_notifier.dart';
 import 'icon_picker.dart';
 
 const int _nameMaxLength = 30;
 const double _dateMinYearsBack = 1;
 const double _dateMaxYearsAhead = 5;
+const _currencyCodes = <String>[
+  'USD',
+  'EUR',
+  'GBP',
+  'JPY',
+  'MMK',
+  'AUD',
+  'CAD',
+];
 
 class AddEditSubscriptionSheet extends ConsumerStatefulWidget {
   final Subscription? existing;
@@ -52,6 +62,8 @@ class _AddEditSubscriptionSheetState
   bool _iconPickedExplicitly = false;
   bool _saving = false;
   late bool _isActive;
+  late String _currencyCode;
+  bool _currencyPickedExplicitly = false;
 
   bool get _isEdit => widget.existing != null;
 
@@ -68,6 +80,8 @@ class _AddEditSubscriptionSheetState
       _iconId = e.iconName ?? categoryDefaultIconId[e.category];
       _iconPickedExplicitly = e.iconName != null;
       _isActive = e.isActive;
+      _currencyCode = e.currencyCode.toUpperCase();
+      _currencyPickedExplicitly = true;
     } else {
       _nameCtl = TextEditingController();
       _costCtl = TextEditingController();
@@ -77,6 +91,7 @@ class _AddEditSubscriptionSheetState
       _iconId = categoryDefaultIconId[_category];
       _iconPickedExplicitly = false;
       _isActive = true;
+      _currencyCode = 'USD';
     }
   }
 
@@ -154,6 +169,12 @@ class _AddEditSubscriptionSheetState
   double _parseCost(String raw) =>
       double.parse(raw.replaceAll(RegExp(r'[\$,\s]'), ''));
 
+  String _effectiveCurrencyCode() {
+    if (_isEdit || _currencyPickedExplicitly) return _currencyCode;
+    return ref.read(settingsNotifierProvider).valueOrNull?.baseCurrency ??
+        'USD';
+  }
+
   Future<void> _onSave() async {
     if (_saving) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -178,6 +199,7 @@ class _AddEditSubscriptionSheetState
           category: _category,
           iconName: _iconId,
           isActive: _isActive,
+          currencyCode: _effectiveCurrencyCode(),
         );
         await notifier.updateSubscription(updated);
       } else {
@@ -189,6 +211,7 @@ class _AddEditSubscriptionSheetState
           category: _category,
           iconName: _iconId,
           isActive: _isActive,
+          currencyCode: _effectiveCurrencyCode(),
         );
         await notifier.addSubscription(entity);
       }
@@ -210,6 +233,11 @@ class _AddEditSubscriptionSheetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final baseCurrency =
+        ref.watch(settingsNotifierProvider).valueOrNull?.baseCurrency ?? 'USD';
+    final displayedCurrency = _isEdit || _currencyPickedExplicitly
+        ? _currencyCode
+        : baseCurrency;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       child: Form(
@@ -249,10 +277,10 @@ class _AddEditSubscriptionSheetState
               TextFormField(
                 key: const ValueKey('cost-field'),
                 controller: _costCtl,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Cost',
-                  prefixText: r'$ ',
-                  border: OutlineInputBorder(),
+                  prefixText: '$displayedCurrency ',
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -262,6 +290,30 @@ class _AddEditSubscriptionSheetState
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9\.\$,\s]')),
                 ],
                 validator: _validateCost,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                key: const ValueKey('currency-field'),
+                initialValue: displayedCurrency,
+                decoration: const InputDecoration(
+                  labelText: 'Subscription currency',
+                  border: OutlineInputBorder(),
+                ),
+                items: _currencyCodes
+                    .map(
+                      (code) =>
+                          DropdownMenuItem(value: code, child: Text(code)),
+                    )
+                    .toList(),
+                onChanged: _saving
+                    ? null
+                    : (code) {
+                        if (code == null) return;
+                        setState(() {
+                          _currencyCode = code;
+                          _currencyPickedExplicitly = true;
+                        });
+                      },
               ),
               const SizedBox(height: 12),
               SegmentedButton<BillingCycle>(

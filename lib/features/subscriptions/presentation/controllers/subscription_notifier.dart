@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/subscription.dart';
+import '../../domain/repositories/subscription_repository.dart';
 import '../../domain/usecases/add_subscription.dart';
+import '../../domain/usecases/auto_advance_due_dates.dart';
 import '../../domain/usecases/calculate_burn_rate.dart';
 import '../../domain/usecases/delete_subscription.dart';
 import '../../domain/usecases/get_upcoming_bills.dart';
@@ -19,21 +21,32 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionsState> {
     // Observe persisted conversion inputs without rebuilding this notifier.
     // This keeps an in-flight add/edit/delete operation intact while settings
     // are first loaded or subsequently saved.
-    ref.listen(settingsNotifierProvider, (_, _) => _emitRecomputedIfReady());
-    ref.listen(
-      exchangeRateNotifierProvider,
-      (_, _) => _emitRecomputedIfReady(),
-    );
-    final settings =
-        ref.read(settingsNotifierProvider).valueOrNull ??
-        SettingsState.defaults;
-    final exchangeRates =
-        ref.read(exchangeRateNotifierProvider).valueOrNull ??
-        const <String, double>{};
+    ref.listen(settingsNotifierProvider, (_, next) {
+      final settings = next.valueOrNull;
+      if (!state.hasValue || settings == null) return;
+      final rates =
+          ref.read(exchangeRateNotifierProvider).valueOrNull ??
+          const <String, double>{};
+      state = AsyncData(_recompute(_current, settings.baseCurrency, rates));
+    });
+    ref.listen(exchangeRateNotifierProvider, (_, next) {
+      final rates = next.valueOrNull;
+      if (!state.hasValue || rates == null) return;
+      final settings =
+          ref.read(settingsNotifierProvider).valueOrNull ??
+          SettingsState.defaults;
+      state = AsyncData(_recompute(_current, settings.baseCurrency, rates));
+    });
+    // Wait for the persisted values on the initial load. Reading the current
+    // AsyncValue here could otherwise calculate the first dashboard frame with
+    // USD/default rates while the settings providers are still loading.
+    final settings = await ref.read(settingsNotifierProvider.future);
+    final exchangeRates = await ref.read(exchangeRateNotifierProvider.future);
     final repo = ref.read(subscriptionRepositoryProvider);
     final all = await repo.getAll();
-    _current = all;
-    return _recompute(all, settings.baseCurrency, exchangeRates);
+    final current = await _advanceAndPersistDueDates(repo, all);
+    _current = current;
+    return _recompute(current, settings.baseCurrency, exchangeRates);
   }
 
   Future<void> addSubscription(Subscription subscription) async {
@@ -68,8 +81,9 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionsState> {
     state = await AsyncValue.guard(() async {
       final repo = ref.read(subscriptionRepositoryProvider);
       final all = await repo.getAll();
-      _current = all;
-      return _recomputeWithCurrentSettings(all);
+      final current = await _advanceAndPersistDueDates(repo, all);
+      _current = current;
+      return _recomputeWithCurrentSettings(current);
     });
   }
 
@@ -95,9 +109,19 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionsState> {
     return _recompute(list, settings.baseCurrency, exchangeRates);
   }
 
-  void _emitRecomputedIfReady() {
-    if (!state.hasValue) return;
-    state = AsyncData(_recomputeWithCurrentSettings(_current));
+  Future<List<Subscription>> _advanceAndPersistDueDates(
+    SubscriptionRepository repo,
+    List<Subscription> subscriptions,
+  ) async {
+    final advanced = autoAdvanceDueDates(subscriptions, today: DateTime.now());
+    final changed = <Subscription>[];
+    for (var index = 0; index < subscriptions.length; index++) {
+      if (advanced[index] != subscriptions[index]) {
+        changed.add(advanced[index]);
+      }
+    }
+    if (changed.isNotEmpty) await repo.updateAll(changed);
+    return advanced;
   }
 
   SubscriptionsState _recompute(
@@ -116,6 +140,8 @@ class SubscriptionNotifier extends AsyncNotifier<SubscriptionsState> {
       monthlyBurnRate: burn.monthly,
       yearlyBurnRate: burn.yearly,
       count: burn.count,
+      baseCurrency: baseCurrency.toUpperCase(),
+      exchangeRates: Map.unmodifiable(exchangeRates),
     );
   }
 }

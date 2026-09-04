@@ -175,31 +175,36 @@ import under `domain/`.
 
 ---
 
+## M9.1 — Base-Currency Display
+
+- [x] Ensure currency symbols update based on the Base Currency setting, not a hardcoded app-wide constant. Dashboard totals and displayed subscription costs now render in the selected base currency (including MMK) using the same static conversion rates as the burn-rate calculation; new subscriptions default to that base currency.
+
+---
+
 ## M10 — Auto-Advance Due Dates
 
-- [ ] Create `domain/usecases/auto_advance_due_dates.dart`.
-- [ ] Pure logic: Loop `nextDueDate` forward by 1 month or 1 year repeatedly until it is `≥ today`.
-- [ ] Update `SubscriptionNotifier.build()` and `refresh()` to invoke `AutoAdvanceDueDates` on all loaded subscriptions.
-- [ ] Batch update the database for any subscription that was modified.
-- [ ] **Tests:** Unit test the auto-advance logic (leap years, month-end wrapping, past due by multiple cycles).
+- [x] Create `domain/usecases/auto_advance_due_dates.dart`.
+- [x] Pure logic: Loop `nextDueDate` forward by 1 month or 1 year repeatedly until it is `≥ today`.
+- [x] Update `SubscriptionNotifier.build()` and `refresh()` to invoke `AutoAdvanceDueDates` on all loaded subscriptions.
+- [x] Batch update the database for any subscription that was modified.
+- [x] **Tests:** Unit test the auto-advance logic (leap years, month-end wrapping, past due by multiple cycles).
 
 ---
 
 ## M11 — Category Breakdown Chart
 
-- [ ] Add `fl_chart` to `pubspec.yaml`.
-- [ ] Create `domain/usecases/get_category_breakdown.dart` (returns sum of active base-currency cost per Category).
-- [ ] Build `CategoryChartWidget` using `PieChart` from `fl_chart`.
-- [ ] Add the chart to `DashboardScreen` (e.g. at the top under the summary card or as a tab/bottom sheet).
-- [ ] **Tests:** Pure logic test for the breakdown grouping.
+- [x] Add `fl_chart` to `pubspec.yaml`.
+- [x] Create `domain/usecases/get_category_breakdown.dart` (returns sum of active base-currency cost per Category).
+- [x] Build `CategoryChartWidget` using `PieChart` from `fl_chart`.
+- [x] Add the chart to `DashboardScreen` (e.g. at the top under the summary card or as a tab/bottom sheet).
+- [x] **Tests:** Pure logic test for the breakdown grouping.
 
 ---
 
 ## M12 — Polish v1.1
 
-- [ ] Ensure currency symbols update based on the Base Currency setting, not a hardcoded app-wide constant.
-- [ ] `flutter analyze` clean; `flutter test` green.
-- [ ] Verify offline constraint is unbroken.
+- [x] `flutter analyze` clean; `flutter test` green.
+- [x] Verify offline constraint is unbroken.
 
 ---
 

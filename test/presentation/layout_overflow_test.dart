@@ -23,6 +23,9 @@ class _StaticRepo implements SubscriptionRepository {
   Future<void> update(Subscription s) async {}
 
   @override
+  Future<void> updateAll(Iterable<Subscription> subscriptions) async {}
+
+  @override
   Future<void> delete(int id) async {}
 }
 

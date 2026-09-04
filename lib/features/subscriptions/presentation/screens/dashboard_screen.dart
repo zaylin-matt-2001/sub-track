@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/usecases/get_category_breakdown.dart';
 import '../controllers/subscription_notifier.dart';
 import '../widgets/add_edit_subscription_sheet.dart';
+import '../widgets/category_chart_widget.dart';
 import '../widgets/dashboard_empty_state.dart';
 import '../widgets/expense_summary_card.dart';
 import '../widgets/subscription_tile.dart';
@@ -45,10 +47,19 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
         data: (state) {
+          final breakdown = getCategoryBreakdownList(
+            state.subscriptions,
+            exchangeRates: state.exchangeRates,
+            baseCurrency: state.baseCurrency,
+          );
           if (state.subscriptions.isEmpty) {
             return Column(
               children: [
                 ExpenseSummaryCard(state: state),
+                CategoryChartWidget(
+                  entries: breakdown,
+                  baseCurrency: state.baseCurrency,
+                ),
                 const Expanded(child: DashboardEmptyState()),
               ],
             );
@@ -60,9 +71,15 @@ class DashboardScreen extends ConsumerWidget {
             child: ListView(
               children: [
                 ExpenseSummaryCard(state: state),
+                CategoryChartWidget(
+                  entries: breakdown,
+                  baseCurrency: state.baseCurrency,
+                ),
                 for (final sub in state.subscriptions)
                   SubscriptionTile(
                     subscription: sub,
+                    baseCurrency: state.baseCurrency,
+                    exchangeRates: state.exchangeRates,
                     onTap: () =>
                         AddEditSubscriptionSheet.show(context, existing: sub),
                     onConfirmDelete: () async {

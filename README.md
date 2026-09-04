@@ -31,6 +31,10 @@ lib/
 ├── app/                       # theme, root widget
 ├── core/                      # constants, utilities, database bootstrap
 └── features/
+    ├── settings/              # base currency + static exchange rates (v1.1)
+    │   ├── data/              # sqflite datasource for settings + exchange_rates
+    │   ├── domain/            # (reserved)
+    │   └── presentation/      # SettingsScreen + notifiers
     └── subscriptions/
         ├── data/              # sqflite datasource + model + repo impl
         ├── domain/            # pure-Dart entities, repo interface, use cases

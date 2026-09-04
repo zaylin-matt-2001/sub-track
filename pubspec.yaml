@@ -48,6 +48,9 @@ dependencies:
   # Currency + date formatting (ADR-003, PRD §4.2 / §4.3).
   intl: ^0.20.2
 
+  # Local category breakdown charting (ADR-009).
+  fl_chart: ^1.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

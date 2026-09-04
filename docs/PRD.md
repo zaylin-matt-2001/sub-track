@@ -176,12 +176,15 @@ Rules:
 
 - **Form inputs** added to v1.0:
   - **Active Toggle**: Switch to pause/resume.
-  - **Currency**: Dropdown or text field for the 3-letter currency code.
+  - **Currency**: Dropdown or text field for the 3-letter currency code. New
+    subscriptions default to the selected base currency.
 
 ### 5.3 Settings Screen (New)
 
 - Set the global **Base Currency**.
 - List and edit **Static Exchange Rates** (e.g. `EUR` -> `1.10`).
+- Changing the base currency updates all displayed dashboard amounts to that
+  currency immediately, including converted subscription costs.
 
 ---
 
@@ -214,10 +217,10 @@ Rules:
 
 ## 9. Definition of Done
 
-- [ ] DB Migration logic updates `subscriptions` table and creates `settings` + `exchange_rates` tables.
-- [ ] Active/Paused toggle works; paused items are excluded from totals and dimmed.
-- [ ] Auto-advance logic successfully pushes past-due dates forward on app launch.
-- [ ] Multi-currency conversion logic is accurate based on static offline rates.
-- [ ] Settings screen allows managing the base currency and rates.
-- [ ] Category pie chart accurately groups active expenses.
-- [ ] All new logic is fully unit-tested (especially auto-advance math and currency conversion).
+- [x] DB Migration logic updates `subscriptions` table and creates `settings` + `exchange_rates` tables.
+- [x] Active/Paused toggle works; paused items are excluded from totals and dimmed.
+- [x] Auto-advance logic successfully pushes past-due dates forward on app launch.
+- [x] Multi-currency conversion logic is accurate based on static offline rates.
+- [x] Settings screen allows managing the base currency and rates.
+- [x] Category pie chart accurately groups active expenses.
+- [x] All new logic is fully unit-tested (especially auto-advance math and currency conversion).

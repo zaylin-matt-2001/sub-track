@@ -29,7 +29,10 @@ class ExpenseSummaryCard extends StatelessWidget {
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-                formatCurrency(state.monthlyBurnRate),
+                formatCurrency(
+                  state.monthlyBurnRate,
+                  currencyCode: state.baseCurrency,
+                ),
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -42,7 +45,10 @@ class ExpenseSummaryCard extends StatelessWidget {
                 Expanded(
                   child: _Stat(
                     label: 'Yearly',
-                    value: formatCurrency(state.yearlyBurnRate),
+                    value: formatCurrency(
+                      state.yearlyBurnRate,
+                      currencyCode: state.baseCurrency,
+                    ),
                   ),
                 ),
                 Expanded(

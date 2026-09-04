@@ -77,7 +77,7 @@ lib/
 | `appDatabaseProvider`                 | `Provider<Database>` (overridden at startup)                      | The open `sqflite` database. Overridden in `ProviderScope` after async open.           |
 | `subscriptionLocalDataSourceProvider` | `Provider<SubscriptionLocalDataSource>`                           | Wraps the database.                                                                    |
 | `subscriptionRepositoryProvider`      | `Provider<SubscriptionRepository>`                                | Returns `SubscriptionRepositoryImpl`.                                                  |
-| `subscriptionNotifierProvider`        | `AsyncNotifierProvider<SubscriptionNotifier, SubscriptionsState>` | Owns the list + derived totals; all mutations. Depends on settings for multi-currency. |
+| `subscriptionNotifierProvider`        | `AsyncNotifierProvider<SubscriptionNotifier, SubscriptionsState>` | Owns the list, selected base currency, conversion inputs, and derived totals; all mutations. Depends on settings for multi-currency. |
 | `settingsNotifierProvider`            | `AsyncNotifierProvider<..., SettingsState>`                       | Owns base currency preference.                                                         |
 | `exchangeRateNotifierProvider`        | `AsyncNotifierProvider<..., Map<String, double>>`                 | Owns the exchange rates table.                                                         |
 
@@ -88,6 +88,7 @@ SubscriptionsState {
   List<Subscription> subscriptions;   // already sorted ascending by nextDueDate
   double monthlyBurnRate;             // M_total (in base currency)
   double yearlyBurnRate;              // A_total (in base currency)
+  String baseCurrency;                // drives every displayed dashboard amount
   int    count;
 }
 ```

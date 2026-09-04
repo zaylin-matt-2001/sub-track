@@ -38,6 +38,18 @@ class SubscriptionLocalDataSource {
     await _db.update(_table, map, where: 'id = ?', whereArgs: [model.id]);
   }
 
+  Future<void> updateAll(Iterable<SubscriptionModel> models) async {
+    final batch = _db.batch();
+    for (final model in models) {
+      if (model.id == null) {
+        throw ArgumentError('Cannot update a SubscriptionModel without an id.');
+      }
+      final map = model.toMap()..['id'] = model.id;
+      batch.update(_table, map, where: 'id = ?', whereArgs: [model.id]);
+    }
+    await batch.commit(noResult: true);
+  }
+
   Future<void> delete(int id) async {
     await _db.delete(_table, where: 'id = ?', whereArgs: [id]);
   }

@@ -7,6 +7,19 @@ import 'package:sub_track/features/subscriptions/domain/entities/subscription.da
 import 'package:sub_track/features/subscriptions/domain/repositories/subscription_repository.dart';
 import 'package:sub_track/features/subscriptions/presentation/controllers/providers.dart';
 import 'package:sub_track/features/subscriptions/presentation/screens/dashboard_screen.dart';
+import 'package:sub_track/features/settings/presentation/controllers/exchange_rate_notifier.dart';
+import 'package:sub_track/features/settings/presentation/controllers/settings_notifier.dart';
+
+class _MmkSettingsNotifier extends SettingsNotifier {
+  @override
+  Future<SettingsState> build() async =>
+      const SettingsState(baseCurrency: 'MMK');
+}
+
+class _MmkExchangeRateNotifier extends ExchangeRateNotifier {
+  @override
+  Future<Map<String, double>> build() async => const {'USD': 2100};
+}
 
 class _FakeRepo implements SubscriptionRepository {
   final List<Subscription> _rows = <Subscription>[];
@@ -40,6 +53,13 @@ class _FakeRepo implements SubscriptionRepository {
   }
 
   @override
+  Future<void> updateAll(Iterable<Subscription> subscriptions) async {
+    for (final subscription in subscriptions) {
+      await update(subscription);
+    }
+  }
+
+  @override
   Future<void> delete(int id) async {
     _rows.removeWhere((s) => s.id == id);
   }
@@ -59,9 +79,15 @@ Subscription _sub({
   category: category,
 );
 
-Widget _harness(SubscriptionRepository repo) {
+Widget _harness(SubscriptionRepository repo, {bool useMmk = false}) {
   return ProviderScope(
-    overrides: [subscriptionRepositoryProvider.overrideWithValue(repo)],
+    overrides: [
+      subscriptionRepositoryProvider.overrideWithValue(repo),
+      if (useMmk) ...[
+        settingsNotifierProvider.overrideWith(_MmkSettingsNotifier.new),
+        exchangeRateNotifierProvider.overrideWith(_MmkExchangeRateNotifier.new),
+      ],
+    ],
     child: MaterialApp(theme: AppTheme.light(), home: const DashboardScreen()),
   );
 }
@@ -124,6 +150,13 @@ void main() {
       expect(find.text('3'), findsOneWidget);
 
       // Cards are sorted ascending by nextDueDate — iCloud first, Spotify next.
+      // The ListView is lazy, so scroll the third tile into view before
+      // asserting on the full ordered list.
+      await tester.scrollUntilVisible(
+        find.text('Domain'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       final tiles = tester.widgetList<ListTile>(find.byType(ListTile)).toList();
       expect(tiles.length, 3);
       expect((tiles[0].title as Text).data, 'iCloud');
@@ -131,6 +164,29 @@ void main() {
       expect((tiles[2].title as Text).data, 'Domain');
     });
   });
+
+  testWidgets(
+    'renders totals and subscription costs in the selected MMK base',
+    (tester) async {
+      final repo = _FakeRepo(
+        seed: [
+          _sub(
+            name: 'Streaming',
+            cost: 10,
+            cycle: BillingCycle.monthly,
+            due: DateTime(2026, 9, 20),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(_harness(repo, useMmk: true));
+      await tester.pumpAndSettle();
+
+      // 10 USD × 2,100 MMK/USD; the dashboard summary card, the subscription
+      // row, and the category chart legend all show the converted value.
+      expect(find.text('MMK 21,000.00'), findsNWidgets(3));
+    },
+  );
 
   group('DashboardScreen — swipe to delete', () {
     testWidgets('swipe shows the confirm dialog and Cancel does nothing', (

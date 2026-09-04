@@ -19,5 +19,10 @@ void main() {
       expect(formatted, startsWith(r'$'));
       expect(formatted, endsWith('.00'));
     });
+
+    test('uses the selected base currency instead of a hard-coded dollar', () {
+      expect(formatCurrency(1200, currencyCode: 'MMK'), 'MMK 1,200.00');
+      expect(formatCurrency(14.99, currencyCode: 'eur'), 'EUR 14.99');
+    });
   });
 }

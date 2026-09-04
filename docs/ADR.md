@@ -115,7 +115,8 @@ floating-point, and **format outputs only at the presentation layer** via `intl`
 
 - Division by 12 produces repeating decimals in floating-point memory; currency
   formatting must handle rounding **at display time only**, uniformly across all
-  screens. Never round intermediate sums.
+  screens. The formatter receives the selected base currency at render time;
+  never hard-code a global currency symbol or round intermediate sums.
 - The burn-rate calculator is a pure function of `List<Subscription>` — no DB
   access — so it is unit-testable in isolation.
 - Date comparisons use local date with the time component zeroed; "today" is

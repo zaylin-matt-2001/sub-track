@@ -9,6 +9,8 @@ import '../../domain/entities/subscription.dart';
 
 class SubscriptionTile extends StatelessWidget {
   final Subscription subscription;
+  final String baseCurrency;
+  final Map<String, double> exchangeRates;
   final VoidCallback? onTap;
   final Future<bool> Function() onConfirmDelete;
 
@@ -16,6 +18,8 @@ class SubscriptionTile extends StatelessWidget {
     super.key,
     required this.subscription,
     required this.onConfirmDelete,
+    this.baseCurrency = 'USD',
+    this.exchangeRates = const <String, double>{},
     this.onTap,
   });
 
@@ -46,6 +50,11 @@ class SubscriptionTile extends StatelessWidget {
     final cycleLabel = subscription.billingCycle == BillingCycle.monthly
         ? '/mo'
         : '/yr';
+    final rate =
+        subscription.currencyCode.toUpperCase() == baseCurrency.toUpperCase()
+        ? 1.0
+        : exchangeRates[subscription.currencyCode.toUpperCase()] ?? 1.0;
+    final costInBase = subscription.cost * rate;
 
     return Dismissible(
       key: ValueKey('sub-${subscription.id}'),
@@ -100,7 +109,7 @@ class SubscriptionTile extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      formatCurrency(subscription.cost),
+                      formatCurrency(costInBase, currencyCode: baseCurrency),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),

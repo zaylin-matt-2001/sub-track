@@ -19,6 +19,12 @@ class FakeSubscriptionRepository implements SubscriptionRepository {
     }
   }
 
+  void replaceAll(List<Subscription> subscriptions) {
+    _rows
+      ..clear()
+      ..addAll(subscriptions);
+  }
+
   @override
   Future<List<Subscription>> getAll() async {
     callLog.add('getAll');
@@ -44,6 +50,14 @@ class FakeSubscriptionRepository implements SubscriptionRepository {
       throw StateError('No row with id ${subscription.id}');
     }
     _rows[idx] = subscription;
+  }
+
+  @override
+  Future<void> updateAll(Iterable<Subscription> subscriptions) async {
+    callLog.add('updateAll');
+    for (final subscription in subscriptions) {
+      await update(subscription);
+    }
   }
 
   @override
@@ -128,6 +142,75 @@ void main() {
       expect(initial.yearlyBurnRate, 0);
       expect(initial, equals(SubscriptionsState.empty));
     });
+
+    test(
+      'build advances past-due subscriptions and persists the changes',
+      () async {
+        final repo = FakeSubscriptionRepository();
+        repo.seed([
+          _sub(
+            name: 'Old subscription',
+            cost: 10,
+            cycle: BillingCycle.monthly,
+            due: DateTime(2020, 1, 1),
+          ),
+        ]);
+        final container = _container(repo);
+        addTearDown(container.dispose);
+
+        final state = await container.read(subscriptionNotifierProvider.future);
+        final today = DateTime.now();
+        final todayDate = DateTime(today.year, today.month, today.day);
+
+        expect(
+          state.subscriptions.single.nextDueDate.isBefore(todayDate),
+          isFalse,
+        );
+        expect(
+          (await repo.getAll()).single.nextDueDate,
+          state.subscriptions.single.nextDueDate,
+        );
+        expect(repo.callLog, contains('updateAll'));
+      },
+    );
+
+    test(
+      'refresh advances and persists newly past-due subscriptions',
+      () async {
+        final repo = FakeSubscriptionRepository();
+        repo.seed([
+          _sub(
+            name: 'Future subscription',
+            cost: 10,
+            cycle: BillingCycle.monthly,
+            due: DateTime(2030, 1, 1),
+          ),
+        ]);
+        final container = _container(repo);
+        addTearDown(container.dispose);
+        await container.read(subscriptionNotifierProvider.future);
+
+        repo.replaceAll([
+          _sub(
+            id: 1,
+            name: 'Past subscription',
+            cost: 10,
+            cycle: BillingCycle.yearly,
+            due: DateTime(2020, 1, 1),
+          ),
+        ]);
+        await container.read(subscriptionNotifierProvider.notifier).refresh();
+
+        final state = container.read(subscriptionNotifierProvider).requireValue;
+        final today = DateTime.now();
+        final todayDate = DateTime(today.year, today.month, today.day);
+        expect(
+          state.subscriptions.single.nextDueDate.isBefore(todayDate),
+          isFalse,
+        );
+        expect(repo.callLog, contains('updateAll'));
+      },
+    );
 
     test('DB error during build → AsyncError', () async {
       final repo = FakeSubscriptionRepository()

@@ -134,6 +134,25 @@ void main() {
       expect(all.first.id, inserted.id);
     });
 
+    test(
+      'updateAll persists multiple rows in one repository operation',
+      () async {
+        final first = await repo.add(_entity(name: 'First'));
+        final second = await repo.add(_entity(name: 'Second'));
+
+        await repo.updateAll([
+          first.copyWith(nextDueDate: DateTime(2026, 10, 1)),
+          second.copyWith(nextDueDate: DateTime(2026, 11, 1)),
+        ]);
+
+        final all = await repo.getAll();
+        expect(all.map((item) => item.nextDueDate), [
+          DateTime(2026, 10, 1),
+          DateTime(2026, 11, 1),
+        ]);
+      },
+    );
+
     test('delete removes the row', () async {
       final a = await repo.add(_entity(name: 'A'));
       final b = await repo.add(_entity(name: 'B'));
