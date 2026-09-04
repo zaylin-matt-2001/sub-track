@@ -76,16 +76,16 @@ import under `domain/`.
 
 ## M4 — State layer (Riverpod)
 
-- [ ] Providers: `appDatabaseProvider` (overridden), `...LocalDataSourceProvider`,
+- [x] Providers: `appDatabaseProvider` (overridden), `...LocalDataSourceProvider`,
       `subscriptionRepositoryProvider`
       ([ARCHITECTURE.md §2](ARCHITECTURE.md#2-adr-005--state-management-details)).
-- [ ] `SubscriptionsState` immutable value object (list + monthly + yearly + count).
-- [ ] `SubscriptionNotifier extends AsyncNotifier<SubscriptionsState>` —
+- [x] `SubscriptionsState` immutable value object (list + monthly + yearly + count).
+- [x] `SubscriptionNotifier extends AsyncNotifier<SubscriptionsState>` —
       `build()` loads + computes; `addSubscription` / `updateSubscription` /
       `deleteSubscription` call use cases then emit once.
-- [ ] `main.dart` — `WidgetsFlutterBinding.ensureInitialized()`, open DB,
+- [x] `main.dart` — `WidgetsFlutterBinding.ensureInitialized()`, open DB,
       `ProviderScope(overrides: [appDatabaseProvider.overrideWithValue(db)])`.
-- [ ] **Tests:** notifier starts in loading→data; add/update/delete produce one
+- [x] **Tests:** notifier starts in loading→data; add/update/delete produce one
       `AsyncData` emission with recomputed totals; DB error → `AsyncError`.
 
 **Done when:** notifier tests green.
@@ -94,17 +94,17 @@ import under `domain/`.
 
 ## M5 — Dashboard UI ([PRD §5.1](PRD.md#51-screen-1--dashboard-dashboard_screendart))
 
-- [ ] `app/theme/app_theme.dart` — M3 light + dark `ColorScheme` (seeded),
+- [x] `app/theme/app_theme.dart` — M3 light + dark `ColorScheme` (seeded),
       `ThemeMode.system`, overdue/warning color roles.
-- [ ] `presentation/screens/dashboard_screen.dart` — `ConsumerWidget`; renders
+- [x] `presentation/screens/dashboard_screen.dart` — `ConsumerWidget`; renders
       `AsyncValue` loading / error / data; `Scaffold` + FAB.
-- [ ] `presentation/widgets/expense_summary_card.dart` — `M_total`, `A_total`,
+- [x] `presentation/widgets/expense_summary_card.dart` — `M_total`, `A_total`,
       count; formatted via `currency_formatter`.
-- [ ] `presentation/widgets/subscription_tile.dart` — icon, name, category tag,
+- [x] `presentation/widgets/subscription_tile.dart` — icon, name, category tag,
       cost, cycle, due date + relative label with color; `Dismissible` +
       confirm dialog on swipe; tap → edit sheet.
-- [ ] Empty state widget.
-- [ ] **Tests:** widget test — empty state renders; a seeded list shows correct
+- [x] Empty state widget.
+- [x] **Tests:** widget test — empty state renders; a seeded list shows correct
       totals and ordering; swipe shows confirm dialog.
 
 **Done when:** dashboard renders real data in light + dark.
@@ -113,18 +113,18 @@ import under `domain/`.
 
 ## M6 — Add / Edit sheet ([PRD §5.2](PRD.md#52-screen-2--add--edit-modal-add_edit_subscription_sheetdart))
 
-- [ ] `presentation/widgets/icon_picker.dart` — single-select scrollable grid
+- [x] `presentation/widgets/icon_picker.dart` — single-select scrollable grid
       over the §3.2a catalog.
-- [ ] `presentation/widgets/add_edit_subscription_sheet.dart` — `Form` with
+- [x] `presentation/widgets/add_edit_subscription_sheet.dart` — `Form` with
       name / cost / segmented cycle / category dropdown / icon picker / date
       picker; add vs edit by whether a `Subscription` is passed.
-- [ ] Validation: name (trim, non-empty, ≤30); cost (positive double, reject
+- [x] Validation: name (trim, non-empty, ≤30); cost (positive double, reject
       `0`/neg/`NaN`/`Infinity`, strip symbols); date range today−1y…today+5y;
       icon must be a catalog id.
-- [ ] Icon default-tracking behavior ([PRD §5.2 Behavior](PRD.md#52-screen-2--add--edit-modal-add_edit_subscription_sheetdart)).
-- [ ] Save → notifier method → close; Cancel → close, no mutation. Disable Save
+- [x] Icon default-tracking behavior ([PRD §5.2 Behavior](PRD.md#52-screen-2--add--edit-modal-add_edit_subscription_sheetdart)).
+- [x] Save → notifier method → close; Cancel → close, no mutation. Disable Save
       while writing (no double-insert).
-- [ ] **Tests:** widget tests for each validation rule; add path adds a row +
+- [x] **Tests:** widget tests for each validation rule; add path adds a row +
       updates totals; edit path preserves `id`; cancel mutates nothing;
       category change moves the icon until an explicit pick.
 
@@ -134,15 +134,17 @@ import under `domain/`.
 
 ## M7 — Polish & Definition of Done
 
-- [ ] Walk the [PRD §9 Definition of Done](PRD.md#9-definition-of-done) checklist.
+- [x] Walk the [PRD §9 Definition of Done](PRD.md#9-definition-of-done) checklist.
 - [ ] Persistence across cold restart verified manually on one desktop + one
-      mobile target.
-- [ ] Confirm zero network code: no `http`/`dio`, no analytics, no cloud SDK;
-      Android manifest has no `INTERNET`-dependent features added.
-- [ ] Large-value / long-name card layout doesn't overflow.
-- [ ] "Today" recomputed on app resume (labels don't go stale).
-- [ ] `flutter analyze` clean; `flutter test` green.
-- [ ] Update [README.md](../README.md) with a one-paragraph description + run/test
+      mobile target. *(Code path verified — `AppDatabase.open()` reuses the
+      on-disk `subtrack.db` in the app documents dir; full manual device
+      verification is out of scope for this sandboxed agent run.)*
+- [x] Confirm zero network code: no `http`/`dio`, no analytics, no cloud SDK;
+      Android `main` manifest has no `INTERNET` permission.
+- [x] Large-value / long-name card layout doesn't overflow.
+- [x] "Today" recomputed on app resume (labels don't go stale).
+- [x] `flutter analyze` clean; `flutter test` green.
+- [x] Update [README.md](../README.md) with a one-paragraph description + run/test
       commands.
 
 **Done when:** every DoD box is checked.
