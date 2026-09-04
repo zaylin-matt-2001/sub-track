@@ -2,22 +2,29 @@
 
 **Status:** Accepted — implementation not yet started
 **Last updated:** 2026-09-03
+**Status:** Accepted — updated for v1.1
+**Last updated:** 2026-09-04
 **Companion docs:** [PRD.md](PRD.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [BUILD_PLAN.md](BUILD_PLAN.md)
 
 > These ADRs are binding technical constraints. Do **not** switch libraries,
 > patterns, or the persistence strategy mid-development without a new ADR that
 > supersedes the relevant one.
 
-| # | Decision area | Selected strategy | Primary benefit |
-| --- | --- | --- | --- |
-| ADR-001 | Storage | SQLite via `sqflite` | Deterministic relational schema & native SQL queries |
-| ADR-002 | State (superseded) | ~~`ChangeNotifier` + `Provider`~~ → see ADR-005 | — |
-| ADR-003 | Formulas & dates | In-memory runtime normalization; ISO-8601 date strings | Precise totals without altering raw user input |
-| ADR-004 | UI | Flutter Material 3, built-in widgets only | High out-of-the-box polish, minimal styling code |
-| ADR-005 | State | `flutter_riverpod` + `AsyncNotifierProvider` | Compile-time DI safety, built-in async state |
-| ADR-006 | Code organization | Feature-First Clean Architecture | Inward-only dependencies; no logic in widgets |
+| #       | Decision area          | Selected strategy                                      | Primary benefit                                      |
+| ------- | ---------------------- | ------------------------------------------------------ | ---------------------------------------------------- |
+| ADR-001 | Storage                | SQLite via `sqflite`                                   | Deterministic relational schema & native SQL queries |
+| ADR-002 | State (superseded)     | ~~`ChangeNotifier` + `Provider`~~ → see ADR-005        | —                                                    |
+| ADR-003 | Formulas & dates       | In-memory runtime normalization; ISO-8601 date strings | Precise totals without altering raw user input       |
+| ADR-004 | UI                     | Flutter Material 3, built-in widgets only              | High out-of-the-box polish, minimal styling code     |
+| ADR-005 | State                  | `flutter_riverpod` + `AsyncNotifierProvider`           | Compile-time DI safety, built-in async state         |
+| ADR-006 | Code organization      | Feature-First Clean Architecture                       | Inward-only dependencies; no logic in widgets        |
+| ADR-007 | Database Migration     | `sqflite` `onUpgrade`                                  | Safe offline schema evolution                        |
+| ADR-008 | Offline Multi-Currency | Static user-defined exchange rates                     | 100% offline accuracy without network APIs           |
+| ADR-009 | Charting Library       | `fl_chart`                                             | Robust local rendering for category breakdowns       |
 
 ---
+
+_(Details for ADR-001 through ADR-006 remain identical to v1.0 and are omitted for brevity in this update, but their constraints remain fully in effect.)_
 
 ## ADR-001: Local Data Persistence Strategy
 
@@ -55,6 +62,8 @@ Use **`sqflite`** (SQLite plugin for Flutter) rather than `shared_preferences` o
 
 ## ADR-002: State Management Pattern
 
+## ADR-007: Database Migration Strategy (v1.1)
+
 **Status:** Superseded by [ADR-005](#adr-005-state-management-architecture)
 
 ### Context
@@ -90,10 +99,14 @@ ADR-005 and are restated there.
 
 ### Context
 
+v1.1 introduces new fields (`is_active`, `currency_code`) to the existing `subscriptions` table and adds two new tables (`settings`, `exchange_rates`).
+
 Subscriptions have different billing cycles (`monthly` or `yearly`). The app must
 compute consistent monthly and annual expenses without rounding drift.
 
 ### Decision
+
+Use the built-in `onUpgrade` callback in `sqflite` to execute raw `ALTER TABLE` and `CREATE TABLE` commands. The schema version is bumped from `1` to `2`.
 
 Normalize all expense calculations **in memory** using `double`-precision
 floating-point, and **format outputs only at the presentation layer** via `intl`
@@ -110,6 +123,9 @@ floating-point, and **format outputs only at the presentation layer** via `intl`
 
 ### Consequences
 
+- Existing v1 user data will not be lost.
+- Default values must be provided during the `ALTER TABLE` to satisfy `NOT NULL` constraints (`is_active DEFAULT 1`, `currency_code DEFAULT 'USD'`).
+
 - Division by 12 produces repeating decimals in floating-point memory; currency
   formatting must handle rounding **at display time only**, uniformly across all
   screens. Never round intermediate sums.
@@ -122,18 +138,31 @@ floating-point, and **format outputs only at the presentation layer** via `intl`
 
 ## ADR-004: UI Framework & Design System
 
+## ADR-008: Offline Multi-Currency Strategy
+
 **Status:** Accepted
 
 ### Context
+
+The app must remain 100% offline (no `INTERNET` permission), but users want to track subscriptions in different currencies and see a unified total in a base currency.
 
 The UI needs a clean, modern look with minimal custom styling code so effort goes
 to functional correctness.
 
 ### Decision
 
+Rely on **static, user-defined exchange rates**.
+
+- The user selects a base currency (e.g., USD).
+- Subscriptions can be tagged with any 3-letter currency code (e.g., JPY, EUR).
+- The user must manually input the exchange rate to their base currency in the app's Settings.
+
 Use **Material 3** (`useMaterial3: true`) with built-in Flutter widgets only.
 
 ### Rationale
+
+- Completely preserves the offline-first privacy model (ADR-001 / PRD constraints).
+- Removes the complexity of historical daily rates; a fixed recurring expense usually has a somewhat predictable normalized impact the user can average out manually.
 
 - Material 3 supplies the needed primitives out of the box: `Card`,
   `SegmentedButton`, `showModalBottomSheet`, `ListTile`, `Dismissible`,
@@ -143,6 +172,9 @@ Use **Material 3** (`useMaterial3: true`) with built-in Flutter widgets only.
 
 ### Consequences
 
+- Burn-rate calculations become slightly more complex (joining exchange rates in memory).
+- If an exchange rate is missing, the engine falls back to `1.0` and the UI should ideally render a warning.
+
 - No external third-party UI packages — reduces package-conflict surface area.
 - Custom styling is limited to a small `app_theme.dart` (color scheme seed,
   text-scaling respect, overdue color roles).
@@ -150,6 +182,8 @@ Use **Material 3** (`useMaterial3: true`) with built-in Flutter widgets only.
 ---
 
 ## ADR-005: State Management Architecture
+
+## ADR-009: Charting Library
 
 **Status:** Accepted (supersedes ADR-002)
 
@@ -192,16 +226,23 @@ list and its derived financial state.
 
 ### Context
 
+v1.1 requires a Pie chart or Bar chart for the Category Breakdown (US-8).
+
 An AI agent building the app can scatter business logic into widgets or create
 circular dependencies without an enforced structure.
 
 ### Decision
+
+Add the `fl_chart` package.
 
 Adopt **Feature-First Clean Architecture** with three layers per feature
 (`domain`, `data`, `presentation`) plus shared `app/` and `core/` folders. Full
 directory layout and layer rules are in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ### Rationale
+
+- It is the most robust, highly maintained charting library for Flutter.
+- Renders entirely locally using Canvas, fitting our offline and Material 3 design constraints seamlessly.
 
 - Clear boundaries; dependencies point inward only
   (`presentation → domain ← data`).
@@ -237,15 +278,15 @@ directory layout and layer rules are in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Allowed dependencies
 
-| Package | Purpose | ADR |
-| --- | --- | --- |
-| `sqflite` | Local SQLite database | ADR-001 |
-| `sqflite_common_ffi` | Desktop + unit-test DB backend | ADR-001 |
-| `sqflite_common_ffi_web` | Web fallback (only if web is tested) | ADR-001 |
+| Package                  | Purpose                                         | ADR     |
+| ------------------------ | ----------------------------------------------- | ------- |
+| `sqflite`                | Local SQLite database                           | ADR-001 |
+| `sqflite_common_ffi`     | Desktop + unit-test DB backend                  | ADR-001 |
+| `sqflite_common_ffi_web` | Web fallback (only if web is tested)            | ADR-001 |
 | `path` / `path_provider` | Resolve the documents directory for the DB file | ADR-001 |
-| `flutter_riverpod` | State management + dependency injection | ADR-005 |
-| `intl` | Currency + date formatting | ADR-003 |
-| `cupertino_icons` | Already present in the template | ADR-004 |
+| `flutter_riverpod`       | State management + dependency injection         | ADR-005 |
+| `intl`                   | Currency + date formatting                      | ADR-003 |
+| `cupertino_icons`        | Already present in the template                 | ADR-004 |
 
 **Optional (immutability, ADR-006 rule 2) — only if the agent chooses `freezed`
 over hand-written `copyWith`:** `freezed_annotation` (dep) + `freezed`,
@@ -255,3 +296,6 @@ equally acceptable and add no dependency.
 Anything not on this list requires a new ADR before being added. Explicitly
 **disallowed:** `provider` (replaced by Riverpod), any HTTP client,
 analytics/telemetry SDK, crash reporter, cloud SDK, or third-party UI kit.
+
+- Adds one new external UI dependency.
+- Must ensure chart colors map correctly to the app's `ThemeData` (M3 ColorScheme).

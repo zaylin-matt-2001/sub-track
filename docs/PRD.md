@@ -2,8 +2,10 @@
 
 **Product:** SubTrack (Personal Subscription & Fixed Expense Tracker)
 **Version:** 1.0
+**Version:** 1.1
 **Status:** Approved for build — implementation not yet started
 **Last updated:** 2026-09-03
+**Last updated:** 2026-09-04
 **Companion docs:** [ADR.md](ADR.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [BUILD_PLAN.md](BUILD_PLAN.md)
 
 ---
@@ -16,33 +18,48 @@ connecting to bank APIs.
 
 **Target architecture:** Flutter (UI + state) + local storage (`sqflite` or
 `isar`). Zero network calls.
+**Target architecture:** Flutter (UI + state) + local storage (`sqflite`). Zero network calls.
 
 **Primary agentic testing goal:** Evaluate how effectively an AI agent can build a
 complete Flutter app using strict data contracts, state management, form
 validation, and local CRUD persistence.
+validation, local CRUD persistence, and safely handle schema migrations (v1.1).
 
 ### Scope
 
-| In scope | Out of scope |
-| --- | --- |
-| Local CRUD for subscriptions | Bank / Plaid / open-banking integration |
-| Monthly & yearly burn-rate calculation | Multi-currency conversion |
-| Upcoming-bill list with relative due dates | Cloud sync / accounts / auth |
-| Material 3 light & dark theme | Notifications / reminders (v1.1 candidate) |
-| Offline-first single-file database | Analytics / telemetry SDKs |
-| | Recurring-payment history / ledger |
+| In scope                                         | Out of scope                               |
+| ------------------------------------------------ | ------------------------------------------ |
+| Local CRUD for subscriptions                     | Bank / Plaid / open-banking integration    |
+| Monthly & yearly burn-rate calculation           | Multi-currency conversion                  |
+| Upcoming-bill list with relative due dates       | Cloud sync / accounts / auth               |
+| Material 3 light & dark theme                    | Notifications / reminders (v1.1 candidate) |
+| Offline-first single-file database               | Analytics / telemetry SDKs                 |
+|                                                  | Recurring-payment history / ledger         |
+| Monthly & yearly burn-rate calculation           | Cloud sync / accounts / auth               |
+| Upcoming-bill list with relative due dates       | Analytics / telemetry SDKs                 |
+| Material 3 light & dark theme                    | Recurring-payment history / ledger         |
+| Offline-first database & migrations              | Live/Network exchange rates (API)          |
+| Active / Paused toggle                           |                                            |
+| Auto-advancing due dates                         |                                            |
+| Category breakdown charts                        |                                            |
+| Multi-currency with manual static exchange rates |                                            |
 
 ---
 
 ## 2. Core User Stories
 
-| ID | Story | Acceptance criteria |
-| --- | --- | --- |
-| US-1 | As a user, I want to add a recurring subscription (cost, cycle, due date, category) so I can record my fixed costs. | Add sheet saves a valid record to the DB; it appears in the list and updates totals without an app restart. |
-| US-2 | As a user, I want to see my total monthly and yearly burn rates instantly at the top of the app. | Dashboard header shows `M_total`, `A_total`, and subscription count, recomputed on every CRUD action. |
-| US-3 | As a user, I want a list of upcoming expenses sorted by due date so I know what bill is coming next. | List is sorted ascending by `nextDueDate`; each row shows a relative due-date label. |
-| US-4 | As a user, I want to edit or delete existing subscriptions. | Tap opens a pre-filled edit sheet; swipe prompts a confirm modal then deletes. Both update list + totals. |
-| US-5 | As a user, I want my data saved strictly on my local device so it persists across restarts without cloud lock-in. | Data survives cold restart. No network permission or request is issued by the app. |
+| ID   | Story                                                                                                                         | Acceptance criteria                                                                                                         |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| US-1 | As a user, I want to add a recurring subscription (cost, cycle, due date, category) so I can record my fixed costs.           | Add sheet saves a valid record to the DB; it appears in the list and updates totals without an app restart.                 |
+| US-1 | As a user, I want to add a recurring subscription (cost, cycle, due date, category, currency) so I can record my fixed costs. | Add sheet saves a valid record to the DB; it appears in the list and updates totals without an app restart.                 |
+| US-2 | As a user, I want to see my total monthly and yearly burn rates instantly at the top of the app.                              | Dashboard header shows `M_total`, `A_total`, and subscription count, recomputed on every CRUD action.                       |
+| US-3 | As a user, I want a list of upcoming expenses sorted by due date so I know what bill is coming next.                          | List is sorted ascending by `nextDueDate`; each row shows a relative due-date label.                                        |
+| US-4 | As a user, I want to edit or delete existing subscriptions.                                                                   | Tap opens a pre-filled edit sheet; swipe prompts a confirm modal then deletes. Both update list + totals.                   |
+| US-5 | As a user, I want my data saved strictly on my local device so it persists across restarts without cloud lock-in.             | Data survives cold restart. No network permission or request is issued by the app.                                          |
+| US-6 | As a user, I want to pause a subscription temporarily so it doesn't count towards my burn rate.                               | A toggle on the edit sheet marks it paused; it dims on the list and is omitted from `M_total`/`A_total`.                    |
+| US-7 | As a user, I want my due dates to auto-advance when the date passes so I don't have to manually update them.                  | On app open, any bill with `nextDueDate < today` has its date pushed forward by one cycle until it is ≥ today.              |
+| US-8 | As a user, I want to see a chart of my spending by category so I know where my money goes.                                    | A chart widget shows the breakdown of active costs grouped by category.                                                     |
+| US-9 | As a user, I want to track subscriptions in different currencies and set offline exchange rates so I can see a unified total. | Settings page allows setting a base currency and static exchange rates; dashboard converts everything to the base currency. |
 
 ---
 
@@ -50,17 +67,22 @@ validation, and local CRUD persistence.
 
 ### 3.1 Entity: `Subscription`
 
-| Field | Type | Nullable | Rules |
-| --- | --- | --- | --- |
-| `id` | `int` | No (auto) | Primary key, autoincrement. Assigned by DB on insert. |
-| `name` | `String` | No | Trimmed. Non-empty after trim. Max 30 characters. |
-| `cost` | `double` | No | Must be `> 0.00`. Stored with full precision; displayed to 2 dp. |
-| `billingCycle` | `String` (enum) | No | One of: `monthly`, `yearly`. |
-| `nextDueDate` | `DateTime` | No | Persisted as ISO-8601 string. Date-only semantics (time component normalized to 00:00 local). |
-| `category` | `String` (enum) | No | One of: `Streaming`, `Software`, `Fitness`, `Utilities`, `Other`. |
-| `iconName` | `String` | Yes (column) | Icon-catalog id (§3.5). The form always sets it (defaulting to the category's icon), so it is non-null in practice; column stays nullable → `null` renders the category's default icon. |
+| Field          | Type            | Nullable     | Rules                                                                                                                                                                                   |
+| -------------- | --------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | `int`           | No (auto)    | Primary key, autoincrement. Assigned by DB on insert.                                                                                                                                   |
+| `name`         | `String`        | No           | Trimmed. Non-empty after trim. Max 30 characters.                                                                                                                                       |
+| `cost`         | `double`        | No           | Must be `> 0.00`. Stored with full precision; displayed to 2 dp.                                                                                                                        |
+| `billingCycle` | `String` (enum) | No           | One of: `monthly`, `yearly`.                                                                                                                                                            |
+| `nextDueDate`  | `DateTime`      | No           | Persisted as ISO-8601 string. Date-only semantics (time component normalized to 00:00 local).                                                                                           |
+| `category`     | `String` (enum) | No           | One of: `Streaming`, `Software`, `Fitness`, `Utilities`, `Other`.                                                                                                                       |
+| `iconName`     | `String`        | Yes (column) | Icon-catalog id (§3.5). The form always sets it (defaulting to the category's icon), so it is non-null in practice; column stays nullable → `null` renders the category's default icon. |
+| `iconName`     | `String`        | Yes (column) | Icon-catalog id.                                                                                                                                                                        |
+| `isActive`     | `bool`          | No           | True if active, false if paused. Defaults to true.                                                                                                                                      |
+| `currencyCode` | `String`        | No           | 3-letter code (e.g. `USD`, `EUR`). Defaults to base currency.                                                                                                                           |
 
 ### 3.2 Enums
+
+### 3.2 Enums & Catalog
 
 ```
 BillingCycle = { monthly, yearly }
@@ -70,33 +92,38 @@ Category     = { Streaming, Software, Fitness, Utilities, Other }
 Persist enums as their lowercase/exact string value. On read, an unrecognized
 value must fall back safely (`category → Other`, `billingCycle → monthly`) rather
 than throw.
+value must fall back safely.
 
 ### 3.2a Icon catalog
+
+_(Icon catalog defined via code exactly as in v1.0)_
 
 A fixed, code-defined catalog maps a stable string id → a Material `IconData`.
 The Add/Edit sheet shows these as a selectable grid (§5.2). Ids are lowercase,
 stable, and never localized.
 
-| id | Icon (Material) | Default for category |
-| --- | --- | --- |
-| `streaming` | `live_tv` | Streaming |
-| `music` | `music_note` | — |
-| `movie` | `movie` | — |
-| `software` | `code` | Software |
-| `cloud` | `cloud` | — |
-| `design` | `brush` | — |
-| `fitness` | `fitness_center` | Fitness |
-| `sports` | `sports_basketball` | — |
-| `health` | `favorite` | — |
-| `utilities` | `bolt` | Utilities |
-| `wifi` | `wifi` | — |
-| `phone` | `smartphone` | — |
-| `home` | `home` | — |
-| `news` | `menu_book` | — |
-| `gaming` | `sports_esports` | — |
-| `shopping` | `shopping_cart` | — |
-| `finance` | `account_balance` | — |
-| `other` | `category` | Other |
+### 3.3 SQLite tables (reference DDL v2)
+
+| id          | Icon (Material)     | Default for category |
+| ----------- | ------------------- | -------------------- |
+| `streaming` | `live_tv`           | Streaming            |
+| `music`     | `music_note`        | —                    |
+| `movie`     | `movie`             | —                    |
+| `software`  | `code`              | Software             |
+| `cloud`     | `cloud`             | —                    |
+| `design`    | `brush`             | —                    |
+| `fitness`   | `fitness_center`    | Fitness              |
+| `sports`    | `sports_basketball` | —                    |
+| `health`    | `favorite`          | —                    |
+| `utilities` | `bolt`              | Utilities            |
+| `wifi`      | `wifi`              | —                    |
+| `phone`     | `smartphone`        | —                    |
+| `home`      | `home`              | —                    |
+| `news`      | `menu_book`         | —                    |
+| `gaming`    | `sports_esports`    | —                    |
+| `shopping`  | `shopping_cart`     | —                    |
+| `finance`   | `account_balance`   | —                    |
+| `other`     | `category`          | Other                |
 
 - **Category → default icon id:** `Streaming→streaming`, `Software→software`,
   `Fitness→fitness`, `Utilities→utilities`, `Other→other`.
@@ -113,8 +140,22 @@ CREATE TABLE subscriptions (
   cost          REAL    NOT NULL CHECK (cost > 0),
   billing_cycle TEXT    NOT NULL CHECK (billing_cycle IN ('monthly','yearly')),
   next_due_date TEXT    NOT NULL,           -- ISO-8601, e.g. 2026-09-15T00:00:00.000
+  next_due_date TEXT    NOT NULL,           -- ISO-8601
   category      TEXT    NOT NULL,
   icon_name     TEXT
+  icon_name     TEXT,
+  is_active     INTEGER NOT NULL DEFAULT 1, -- 1=true, 0=false
+  currency_code TEXT    NOT NULL DEFAULT 'USD'
+);
+
+CREATE TABLE settings (
+  key           TEXT PRIMARY KEY,
+  value         TEXT NOT NULL
+);
+
+CREATE TABLE exchange_rates (
+  currency_code TEXT PRIMARY KEY,
+  rate_to_base  REAL NOT NULL
 );
 ```
 
@@ -122,6 +163,9 @@ CREATE TABLE subscriptions (
 - Schema version starts at `1`; migrations handled via an `onUpgrade` switch.
 - Column names are `snake_case` in SQL; the Dart model exposes `camelCase` and
   maps in `toMap()` / `fromMap()`.
+- Schema version bumped to `2`.
+- Migrations handled via an `onUpgrade` switch in `AppDatabase`.
+- `settings` stores the base currency (e.g., `key = 'base_currency'`, `value = 'USD'`).
 
 ### 3.4 Model contract (Dart)
 
@@ -130,6 +174,8 @@ CREATE TABLE subscriptions (
 - `fromMap()` is total: never throws on a well-formed row; applies enum
   fallbacks from §3.2.
 - Equality by all fields (for state diffing / tests).
+- `toMap()` omits `id` when null.
+- Equality by all fields.
 
 ---
 
@@ -137,22 +183,37 @@ CREATE TABLE subscriptions (
 
 ### 4.1 Financial calculation engine
 
+### 4.1 Financial calculation engine & Multi-Currency
+
 Computed from **all** stored subscriptions (v1 has no active/paused concept; every
 row counts).
+Computed from **all active** stored subscriptions.
 
 **Normalized monthly cost:**
 
+**Normalized monthly cost (per subscription in base currency):**
+
 ```
 M_total = Σ(cost where cycle == monthly) + Σ(cost / 12 where cycle == yearly)
+monthly_cost = (cycle == monthly ? cost : cost / 12)
+cost_in_base = monthly_cost * ExchangeRate(subscription.currencyCode)
 ```
+
+_(If the subscription currency is the base currency, ExchangeRate is 1.0. If an exchange rate is missing, fallback to 1.0)._
 
 **Normalized annual cost:**
 
+**Totals:**
+
 ```
+M_total = Σ(cost_in_base where isActive == true)
 A_total = M_total × 12
 ```
 
 Rules:
+
+- Empty list → `M_total = 0`, `A_total = 0`, count = 0.
+- The engine is a pure function of `List<Subscription>` and a `Map<String, double>` of exchange rates.
 
 - Empty list → `M_total = 0`, `A_total = 0`, count = 0. Show an empty state, not
   a blank card.
@@ -160,27 +221,42 @@ Rules:
 - The engine is a pure function of `List<Subscription>` — no DB access inside it,
   so it is unit-testable in isolation.
 
+### 4.2 Auto-Advance Due Dates
+
 ### 4.2 Currency display
+
+- Upon loading the list from the database, if `nextDueDate < today`:
+  - Automatically add 1 month (if monthly) or 1 year (if yearly) repeatedly until `nextDueDate ≥ today`.
+  - Batch update the modified records in the DB.
 
 - All monetary values formatted via the `intl` package (`NumberFormat.currency`).
 - Default locale/symbol: USD `$`, 2 decimal places, thousands separators
   (e.g. `$14.99`, `$1,200.00`).
 - Currency symbol/locale is a single app-level constant (not per-subscription).
 
+### 4.3 Category Breakdown
+
 ### 4.3 List sorting & date handling
+
+- Sum the `cost_in_base` of active subscriptions, grouped by `Category`.
+- Provide data points for the `fl_chart` widget.
+
+### 4.4 List sorting & date handling
 
 - Sort ascending by `nextDueDate` (closest upcoming bill first).
 - Tie-break by `name` (A→Z) for stable ordering.
 - Relative date label derived from `nextDueDate` vs. today (local date, time
   ignored):
+- Tie-break by `name` (A→Z).
+- Paused subscriptions drop to the bottom of the list, sorted by name.
 
-| Condition | Label | Styling |
-| --- | --- | --- |
-| `dueDate == today` | `Due today` | Warning/highlight color |
-| `dueDate < today` | `Overdue by X day(s)` | Error color |
-| `dueDate == today + 1` | `Tomorrow` | Default |
-| `today < dueDate ≤ today + 7` | `In X days` | Default |
-| `dueDate > today + 7` | `Next bill: MMM dd` (e.g. `Next bill: Oct 15`) | Muted |
+| Condition                     | Label                                          | Styling                 |
+| ----------------------------- | ---------------------------------------------- | ----------------------- |
+| `dueDate == today`            | `Due today`                                    | Warning/highlight color |
+| `dueDate < today`             | `Overdue by X day(s)`                          | Error color             |
+| `dueDate == today + 1`        | `Tomorrow`                                     | Default                 |
+| `today < dueDate ≤ today + 7` | `In X days`                                    | Default                 |
+| `dueDate > today + 7`         | `Next bill: MMM dd` (e.g. `Next bill: Oct 15`) | Muted                   |
 
 - **Overdue handling (v1):** display only — mark as overdue. No automatic
   rollover of `nextDueDate`. (Auto-advance is a v1.1 candidate; see §8.)
@@ -193,13 +269,25 @@ Rules:
 
 ### 5.1 Screen 1 — Dashboard (`dashboard_screen.dart`)
 
+### 5.1 Dashboard (`dashboard_screen.dart`)
+
 **Header summary card**
+
+- **Header summary card**: Total monthly and yearly burn rates in the Base Currency.
+- **Category Chart**: Expandable or separate tab showing the Pie chart of expenses.
+- **Subscription list**: Paused items are visually dimmed/greyed out.
 
 - Total monthly burn rate (`M_total`), formatted currency.
 - Total yearly burn rate (`A_total`), formatted currency.
 - Total count of tracked subscriptions.
 
+### 5.2 Add / Edit modal (`add_edit_subscription_sheet.dart`)
+
 **Subscription list**
+
+- **Form inputs** added to v1.0:
+  - **Active Toggle**: Switch to pause/resume.
+  - **Currency**: Dropdown or text field for the 3-letter currency code.
 
 - Card-based list. Each card shows: icon, name, category tag, cost, billing
   cycle, next due date + relative label.
@@ -209,7 +297,12 @@ Rules:
   record's data (edit mode).
 - Empty state: friendly message + prompt to add the first subscription.
 
+### 5.3 Settings Screen (New)
+
 **Floating action button**
+
+- Set the global **Base Currency**.
+- List and edit **Static Exchange Rates** (e.g. `EUR` -> `1.10`).
 
 - `+` FAB anchored bottom-right → opens Add/Edit sheet in add mode.
 
@@ -220,14 +313,14 @@ whether a `Subscription` is passed in.
 
 **Form inputs**
 
-| Field | Control | Validation |
-| --- | --- | --- |
-| Name | Text field | Required; trimmed non-empty; max 30 chars. |
-| Cost | Numeric text field (decimal keyboard) | Required; parses to a positive `double` (`> 0`); reject `0`, negatives, non-numeric, `NaN`/`Infinity`. |
-| Billing cycle | Segmented button (`Monthly` \| `Yearly`) | Required; defaults to `Monthly`. |
-| Category | Dropdown (`Streaming`, `Software`, `Fitness`, `Utilities`, `Other`) | Required; defaults to `Other`. |
-| Icon | Selectable grid of the §3.2a catalog icons (single-select, scrollable) | Required; must be a catalog id. Defaults to the selected category's default icon. |
-| Next due date | Tap opens `showDatePicker` | Required; defaults to today. Allowed range: today − 1 year … today + 5 years. |
+| Field         | Control                                                                | Validation                                                                                             |
+| ------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Name          | Text field                                                             | Required; trimmed non-empty; max 30 chars.                                                             |
+| Cost          | Numeric text field (decimal keyboard)                                  | Required; parses to a positive `double` (`> 0`); reject `0`, negatives, non-numeric, `NaN`/`Infinity`. |
+| Billing cycle | Segmented button (`Monthly` \| `Yearly`)                               | Required; defaults to `Monthly`.                                                                       |
+| Category      | Dropdown (`Streaming`, `Software`, `Fitness`, `Utilities`, `Other`)    | Required; defaults to `Other`.                                                                         |
+| Icon          | Selectable grid of the §3.2a catalog icons (single-select, scrollable) | Required; must be a catalog id. Defaults to the selected category's default icon.                      |
+| Next due date | Tap opens `showDatePicker`                                             | Required; defaults to today. Allowed range: today − 1 year … today + 5 years.                          |
 
 **Actions**
 
@@ -270,6 +363,12 @@ and [ADR-006](ADR.md#adr-006-code-organization--feature-first-clean-architecture
 full detail is in [ARCHITECTURE.md](ARCHITECTURE.md). Summary of the binding
 requirements:
 
+- **State management:** `flutter_riverpod` + `AsyncNotifierProvider`.
+- New Providers:
+  - `settingsNotifierProvider` for Base Currency.
+  - `exchangeRateNotifierProvider` for the conversion table.
+  - `subscriptionNotifierProvider` now depends on both to calculate accurate totals.
+
 - **State management:** `flutter_riverpod` + `AsyncNotifierProvider`. State stays
   reactive to every SQLite CRUD action — the dashboard totals and list update
   without manual refresh. The UI consumes `AsyncValue<SubscriptionsState>`
@@ -294,19 +393,23 @@ requirements:
 
 ## 7. Non-Functional & Technical Constraints
 
-| Area | Requirement |
-| --- | --- |
-| Platform | Flutter cross-platform: iOS, Android, desktop (macOS/Windows/Linux). |
-| State management | `flutter_riverpod` + `AsyncNotifierProvider` (ADR-005). Reactive to DB CRUD. |
-| Architecture | Feature-First Clean Architecture (ADR-006); see [ARCHITECTURE.md](ARCHITECTURE.md). |
-| Database | `sqflite`. Single DB file (`subtrack.db`) in app documents dir. `sqflite_common_ffi` for desktop/test. |
-| Offline-first | 100% offline. No HTTP clients, network adapters, analytics, or crash SDKs. No `INTERNET`-dependent code paths. |
-| UI style | Material 3 design system, dynamic light/dark theme following the OS. |
-| Formatting | `intl` for all currency and date formatting. |
-| Performance | Handles ≥ 200 subscriptions with smooth scrolling; startup read < 100 ms for typical data. |
-| Accessibility | Semantic labels on interactive elements; respects text scaling; color is not the only overdue signal (also text). |
-| Testing | Unit tests for the calculation engine and date-label logic; repository tests against an in-memory/FFI database; widget test for form validation. |
-| Localization | Strings centralized; USD/`en_US` default. Full i18n out of scope for v1. |
+| Area             | Requirement                                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Platform         | Flutter cross-platform: iOS, Android, desktop (macOS/Windows/Linux).                                                                             |
+| State management | `flutter_riverpod` + `AsyncNotifierProvider` (ADR-005). Reactive to DB CRUD.                                                                     |
+| Architecture     | Feature-First Clean Architecture (ADR-006); see [ARCHITECTURE.md](ARCHITECTURE.md).                                                              |
+| Database         | `sqflite`. Single DB file (`subtrack.db`) in app documents dir. `sqflite_common_ffi` for desktop/test.                                           |
+| Offline-first    | 100% offline. No HTTP clients, network adapters, analytics, or crash SDKs. No `INTERNET`-dependent code paths.                                   |
+| UI style         | Material 3 design system, dynamic light/dark theme following the OS.                                                                             |
+| Formatting       | `intl` for all currency and date formatting.                                                                                                     |
+| Performance      | Handles ≥ 200 subscriptions with smooth scrolling; startup read < 100 ms for typical data.                                                       |
+| Accessibility    | Semantic labels on interactive elements; respects text scaling; color is not the only overdue signal (also text).                                |
+| Testing          | Unit tests for the calculation engine and date-label logic; repository tests against an in-memory/FFI database; widget test for form validation. |
+| Localization     | Strings centralized; USD/`en_US` default. Full i18n out of scope for v1.                                                                         |
+
+- Architecture remains Feature-First Clean Architecture (ADR-006).
+- Database migrations must preserve v1 user data.
+- UI uses `fl_chart` for category charting.
 
 ### 7.1 Project structure
 
@@ -340,6 +443,9 @@ file each PRD screen and engine maps to.
     while writing).
 14. **DB write failure:** SnackBar error; in-memory state left consistent with
     what is actually persisted.
+15. **Paused items:** keep track of them in DB, but don't count towards burn rate.
+16. **Missing exchange rate:** assume 1:1, maybe show a warning icon on the subscription card.
+17. **Auto-advance logic:** must handle leap years correctly by leveraging Dart's `DateTime` semantics.
 
 ### 8.1 v1.1 candidates (not in this build)
 
@@ -371,3 +477,10 @@ file each PRD screen and engine maps to.
 - [ ] State via `flutter_riverpod` `AsyncNotifierProvider` (ADR-005); one state
       emission per mutation.
 - [ ] `flutter analyze` clean; `flutter test` green on CI targets.
+- [ ] DB Migration logic updates `subscriptions` table and creates `settings` + `exchange_rates` tables.
+- [ ] Active/Paused toggle works; paused items are excluded from totals and dimmed.
+- [ ] Auto-advance logic successfully pushes past-due dates forward on app launch.
+- [ ] Multi-currency conversion logic is accurate based on static offline rates.
+- [ ] Settings screen allows managing the base currency and rates.
+- [ ] Category pie chart accurately groups active expenses.
+- [ ] All new logic is fully unit-tested (especially auto-advance math and currency conversion).
