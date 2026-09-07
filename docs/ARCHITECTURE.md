@@ -1,7 +1,7 @@
 # SubTrack — Architecture Specification
 
-**Status:** Accepted — updated for v1.1
-**Last updated:** 2026-09-04
+**Status:** Completed (v1.1)
+**Last updated:** 2026-09-07
 **Companion docs:** [PRD.md](PRD.md) · [ADR.md](ADR.md) · [BUILD_PLAN.md](BUILD_PLAN.md)
 
 Formalizes [ADR-005](ADR.md#adr-005-state-management-architecture) (Riverpod) and
@@ -72,14 +72,14 @@ lib/
 
 ### Providers
 
-| Provider                              | Type                                                              | Responsibility                                                                         |
-| ------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `appDatabaseProvider`                 | `Provider<Database>` (overridden at startup)                      | The open `sqflite` database. Overridden in `ProviderScope` after async open.           |
-| `subscriptionLocalDataSourceProvider` | `Provider<SubscriptionLocalDataSource>`                           | Wraps the database.                                                                    |
-| `subscriptionRepositoryProvider`      | `Provider<SubscriptionRepository>`                                | Returns `SubscriptionRepositoryImpl`.                                                  |
+| Provider                              | Type                                                              | Responsibility                                                                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `appDatabaseProvider`                 | `Provider<Database>` (overridden at startup)                      | The open `sqflite` database. Overridden in `ProviderScope` after async open.                                                         |
+| `subscriptionLocalDataSourceProvider` | `Provider<SubscriptionLocalDataSource>`                           | Wraps the database.                                                                                                                  |
+| `subscriptionRepositoryProvider`      | `Provider<SubscriptionRepository>`                                | Returns `SubscriptionRepositoryImpl`.                                                                                                |
 | `subscriptionNotifierProvider`        | `AsyncNotifierProvider<SubscriptionNotifier, SubscriptionsState>` | Owns the list, selected base currency, conversion inputs, and derived totals; all mutations. Depends on settings for multi-currency. |
-| `settingsNotifierProvider`            | `AsyncNotifierProvider<..., SettingsState>`                       | Owns base currency preference.                                                         |
-| `exchangeRateNotifierProvider`        | `AsyncNotifierProvider<..., Map<String, double>>`                 | Owns the exchange rates table.                                                         |
+| `settingsNotifierProvider`            | `AsyncNotifierProvider<..., SettingsState>`                       | Owns base currency preference.                                                                                                       |
+| `exchangeRateNotifierProvider`        | `AsyncNotifierProvider<..., Map<String, double>>`                 | Owns the exchange rates table.                                                                                                       |
 
 ### `SubscriptionsState` (presentation state object, immutable)
 

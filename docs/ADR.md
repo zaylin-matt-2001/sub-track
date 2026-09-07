@@ -1,7 +1,7 @@
 # SubTrack — Architecture Decision Records
 
-**Status:** Accepted — updated for v1.1
-**Last updated:** 2026-09-04
+**Status:** Completed (v1.1)
+**Last updated:** 2026-09-07
 **Companion docs:** [PRD.md](PRD.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [BUILD_PLAN.md](BUILD_PLAN.md)
 
 > These ADRs are binding technical constraints. Do **not** switch libraries,

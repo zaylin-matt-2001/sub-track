@@ -2,8 +2,8 @@
 
 **Product:** SubTrack (Personal Subscription & Fixed Expense Tracker)
 **Version:** 1.1
-**Status:** Approved for build — implementation not yet started
-**Last updated:** 2026-09-04
+**Status:** Completed (v1.1)
+**Last updated:** 2026-09-07
 **Companion docs:** [ADR.md](ADR.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [BUILD_PLAN.md](BUILD_PLAN.md)
 
 ---
