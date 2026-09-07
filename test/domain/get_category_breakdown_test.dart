@@ -134,45 +134,42 @@ void main() {
       expect(result[Category.software], closeTo(10.0, 1e-9));
     });
 
-    test(
-      'breakdown sum equals the active monthly burn rate from '
-      'calculateBurnRate',
-      () {
-        final subs = [
-          _sub(
-            name: 'Spotify',
-            cost: 9.99,
-            cycle: BillingCycle.monthly,
-            category: Category.streaming,
-          ),
-          _sub(
-            name: 'iCloud',
-            cost: 2.99,
-            cycle: BillingCycle.monthly,
-            category: Category.software,
-          ),
-          _sub(
-            name: 'Domain',
-            cost: 120,
-            cycle: BillingCycle.yearly,
-            category: Category.software,
-          ),
-          _sub(
-            name: 'Old Gym',
-            cost: 30,
-            cycle: BillingCycle.monthly,
-            category: Category.fitness,
-            isActive: false,
-          ),
-        ];
+    test('breakdown sum equals the active monthly burn rate from '
+        'calculateBurnRate', () {
+      final subs = [
+        _sub(
+          name: 'Spotify',
+          cost: 9.99,
+          cycle: BillingCycle.monthly,
+          category: Category.streaming,
+        ),
+        _sub(
+          name: 'iCloud',
+          cost: 2.99,
+          cycle: BillingCycle.monthly,
+          category: Category.software,
+        ),
+        _sub(
+          name: 'Domain',
+          cost: 120,
+          cycle: BillingCycle.yearly,
+          category: Category.software,
+        ),
+        _sub(
+          name: 'Old Gym',
+          cost: 30,
+          cycle: BillingCycle.monthly,
+          category: Category.fitness,
+          isActive: false,
+        ),
+      ];
 
-        final breakdown = getCategoryBreakdown(subs);
-        final total = breakdown.values.fold<double>(0, (sum, v) => sum + v);
+      final breakdown = getCategoryBreakdown(subs);
+      final total = breakdown.values.fold<double>(0, (sum, v) => sum + v);
 
-        expect(total, closeTo(9.99 + 2.99 + 10.0, 1e-9));
-        expect(breakdown[Category.fitness], isNull);
-      },
-    );
+      expect(total, closeTo(9.99 + 2.99 + 10.0, 1e-9));
+      expect(breakdown[Category.fitness], isNull);
+    });
   });
 
   group('getCategoryBreakdown — multi-currency', () {

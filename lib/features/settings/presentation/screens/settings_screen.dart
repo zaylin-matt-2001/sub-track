@@ -86,66 +86,130 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Center(child: Text('Failed to load rates: $error')),
           data: (rateData) {
             _initialize(settingsData, rateData);
+            final theme = Theme.of(context);
             return Form(
               key: _formKey,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: _baseCurrency,
-                    decoration: const InputDecoration(
-                      labelText: 'Base currency',
-                      border: OutlineInputBorder(),
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.account_balance_wallet_outlined,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Base currency',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            initialValue: _baseCurrency,
+                            decoration: const InputDecoration(
+                              labelText: 'Currency',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _currencies
+                                .map(
+                                  (code) => DropdownMenuItem(
+                                    value: code,
+                                    child: Text(code),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: _saving
+                                ? null
+                                : (value) =>
+                                      setState(() => _baseCurrency = value),
+                          ),
+                        ],
+                      ),
                     ),
-                    items: _currencies
-                        .map(
-                          (code) =>
-                              DropdownMenuItem(value: code, child: Text(code)),
-                        )
-                        .toList(),
-                    onChanged: _saving
-                        ? null
-                        : (value) => setState(() => _baseCurrency = value),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Exchange rates to $_baseCurrency',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Enter how much one unit of each currency is worth in $_baseCurrency. Leave blank for a 1:1 fallback.',
                   ),
                   const SizedBox(height: 16),
-                  for (final entry in _controllers.entries.where(
-                    (entry) => entry.key != _baseCurrency,
-                  )) ...[
-                    TextFormField(
-                      controller: entry.value,
-                      enabled: !_saving,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.currency_exchange,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Exchange rates to $_baseCurrency',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          for (final entry in _controllers.entries.where(
+                            (entry) => entry.key != _baseCurrency,
+                          )) ...[
+                            TextFormField(
+                              controller: entry.value,
+                              enabled: !_saving,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              decoration: InputDecoration(
+                                labelText: '${entry.key} -> $_baseCurrency',
+                                hintText: '1.10',
+                                border: const OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return null;
+                                }
+                                final rate = double.tryParse(value.trim());
+                                if (rate == null ||
+                                    !rate.isFinite ||
+                                    rate <= 0) {
+                                  return 'Enter a rate greater than 0';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        ],
                       ),
-                      decoration: InputDecoration(
-                        labelText: '${entry.key} → $_baseCurrency',
-                        hintText: 'e.g. 1.10',
-                        border: const OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) return null;
-                        final rate = double.tryParse(value.trim());
-                        if (rate == null || !rate.isFinite || rate <= 0) {
-                          return 'Enter a rate greater than 0';
-                        }
-                        return null;
-                      },
                     ),
-                    const SizedBox(height: 12),
-                  ],
-                  const SizedBox(height: 12),
-                  FilledButton(
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
                     onPressed: _saving ? null : _save,
-                    child: Text(_saving ? 'Saving…' : 'Save settings'),
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check),
+                    label: Text(_saving ? 'Saving...' : 'Save settings'),
                   ),
                 ],
               ),

@@ -75,6 +75,26 @@ class DashboardScreen extends ConsumerWidget {
                   entries: breakdown,
                   baseCurrency: state.baseCurrency,
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Upcoming bills',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      Text(
+                        '${state.subscriptions.length} total',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 for (final sub in state.subscriptions)
                   SubscriptionTile(
                     subscription: sub,

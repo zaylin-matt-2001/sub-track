@@ -13,18 +13,29 @@ class ExpenseSummaryCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      color: theme.colorScheme.primaryContainer,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Monthly burn rate',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            Row(
+              children: [
+                Icon(
+                  Icons.payments_outlined,
+                  size: 20,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Monthly burn rate',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -34,12 +45,13 @@ class ExpenseSummaryCard extends StatelessWidget {
                   currencyCode: state.baseCurrency,
                 ),
                 style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w700,
                 ),
                 maxLines: 1,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -78,11 +90,22 @@ class _Stat extends StatelessWidget {
         Text(
           label,
           style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+            color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.72),
           ),
         ),
         const SizedBox(height: 2),
-        Text(value, style: theme.textTheme.titleLarge),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            maxLines: 1,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
       ],
     );
   }

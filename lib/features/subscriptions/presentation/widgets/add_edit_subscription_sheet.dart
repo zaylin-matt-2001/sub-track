@@ -38,6 +38,8 @@ class AddEditSubscriptionSheet extends ConsumerStatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: AddEditSubscriptionSheet(existing: existing),
@@ -238,12 +240,15 @@ class _AddEditSubscriptionSheetState
     final displayedCurrency = _isEdit || _currencyPickedExplicitly
         ? _currencyCode
         : baseCurrency;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+      ),
       child: Form(
         key: _formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
         child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -408,12 +413,19 @@ class _AddEditSubscriptionSheetState
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: FilledButton(
+                    child: FilledButton.icon(
                       key: const ValueKey('save-button'),
                       onPressed: _saving ? null : _onSave,
-                      child: Text(
+                      icon: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check),
+                      label: Text(
                         _saving
-                            ? 'Saving…'
+                            ? 'Saving...'
                             : (_isEdit ? 'Save changes' : 'Save'),
                       ),
                     ),
